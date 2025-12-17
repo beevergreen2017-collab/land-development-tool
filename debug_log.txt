@@ -1,0 +1,18 @@
+
+Searching for 'InvalidSection' in town 'A17'
+API Status: 404
+API failed with 
+
+Searching for '雙園段一小段' in town 'A05'
+API Status: 404
+API failed with 
+
+Searching for 'InvalidSection' in town 'A17' using https://api.nlsc.gov.tw/other/ListLandSection/A/A17
+API Status: 200
+Found 40 items in XML.
+No match found.
+
+Searching for '雙園段一小段' in town 'A05' using https://api.nlsc.gov.tw/other/ListLandSection/A/A05
+API Status: 200
+Found 32 items in XML.
+MATCH! Code: 0024

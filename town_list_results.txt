@@ -1,0 +1,13 @@
+--- Towns in City A ---
+Code: A01, Name: 松山區
+Code: A02, Name: 大安區
+Code: A03, Name: 中正區
+Code: A05, Name: 萬華區
+Code: A09, Name: 大同區
+Code: A10, Name: 中山區
+Code: A11, Name: 文山區
+Code: A13, Name: 南港區
+Code: A14, Name: 內湖區
+Code: A15, Name: 士林區
+Code: A16, Name: 北投區
+Code: A17, Name: 信義區

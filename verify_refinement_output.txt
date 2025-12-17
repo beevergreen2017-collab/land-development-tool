@@ -1,0 +1,4 @@
+Case 1 (Wanhua/Xiyuan): 404
+Case 2 (Wanhua/Shuangyuan): 404
+Case 3 (Wenshan/Unknown): 400
+Case 4 (Invalid): 400

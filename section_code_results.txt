@@ -1,0 +1,11 @@
+
+--- Testing Code A05 with https://api.nlsc.gov.tw/other/ListLandSection/A/A05 ---
+MATCH FOUND! TownCode: A05, SectCode: 0024, Name: 雙園段一小段
+MATCH FOUND! TownCode: A05, SectCode: 0025, Name: 雙園段二小段
+MATCH FOUND! TownCode: A05, SectCode: 0026, Name: 雙園段三小段
+
+--- Testing Code 05 with https://api.nlsc.gov.tw/other/ListLandSection/A/05 ---
+Status: 204
+
+--- Testing Code 07 with https://api.nlsc.gov.tw/other/ListLandSection/A/07 ---
+Status: 204

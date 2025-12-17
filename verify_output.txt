@@ -1,0 +1,4 @@
+Testing http://127.0.0.1:8001/proxy/land-info with params {'lot_no': '265', 'section_name': '西園'}...
+Status Code: 404
+Response: {"detail":"Parcel not found in external API."}
+Backend verification FAILED: Non-200 status
