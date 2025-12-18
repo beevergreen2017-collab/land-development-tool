@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { Plus, Trash2, Calculator, Search, Save, Edit, Menu, X, List, CheckCircle, AlertTriangle } from 'lucide-react'
+import { Plus, Trash2, Calculator, Search, Save, Edit, Menu, X, List, CheckCircle, AlertTriangle, Map } from 'lucide-react'
 
-const API_URL = 'http://127.0.0.1:8001'
+const envApiUrl = import.meta.env.VITE_API_URL;
+const API_URL = envApiUrl || 'http://localhost:8001';
 
 // --- Constants & Config ---
 
@@ -173,6 +174,21 @@ function App() {
     mgmt_rate: 0 // If user wants to input %, but prompt implies direct subtraction value. Let's provide "Cost per ping".
   })
 
+  // Massing Assessment State
+  const [massingInputs, setMassingInputs] = useState({
+    design_coverage: 45.0, exemption_coef: 1.15, public_ratio: 33.0, me_rate: 15.0, stair_rate: 10.0, balcony_rate: 5.0,
+    residential_rate: 60.0, commercial_rate: 30.0, agency_rate: 10.0
+  })
+
+  // Basement Assessment State
+  const [basementInputs, setBasementInputs] = useState({
+    legal_parking: 0,
+    bonus_parking: 0,
+    excavation_rate: 70.0,
+    parking_space_area: 40.0,
+    floor_height: 3.3
+  })
+
   // --- Effects ---
 
   useEffect(() => { fetchProjects() }, [])
@@ -190,6 +206,27 @@ function App() {
         bonus_tod: selectedProject.bonus_tod ?? 0.0,
         bonus_public_exemption: selectedProject.bonus_public_exemption ?? 7.98,
         bonus_cap: selectedProject.bonus_cap ?? 100.0
+      })
+      setMassingInputs({
+        design_coverage: selectedProject.massing_design_coverage ?? 45.0,
+        exemption_coef: selectedProject.massing_exemption_coef ?? 1.15,
+        public_ratio: selectedProject.massing_public_ratio ?? 33.0,
+        me_rate: selectedProject.massing_me_rate ?? 15.0,
+        stair_rate: selectedProject.massing_stair_rate ?? 10.0,
+        balcony_rate: selectedProject.massing_balcony_rate ?? 5.0,
+        residential_rate: selectedProject.usage_residential_rate ?? 60.0,
+        commercial_rate: selectedProject.usage_commercial_rate ?? 30.0,
+
+        agency_rate: selectedProject.usage_agency_rate ?? 10.0
+      })
+      setBasementInputs({
+        legal_parking: selectedProject.basement_legal_parking ?? 0,
+        bonus_parking: selectedProject.basement_bonus_parking ?? 0,
+        excavation_rate: selectedProject.basement_excavation_rate ?? 70.0,
+        parking_space_area: selectedProject.basement_parking_space_area ?? 40.0,
+        floor_height: selectedProject.basement_floor_height ?? 3.3,
+        motorcycle_unit_area: selectedProject.basement_motorcycle_unit_area ?? 4.0,
+        legal_motorcycle: selectedProject.basement_legal_motorcycle ?? 0
       })
     }
   }, [selectedProject])
@@ -350,6 +387,34 @@ function App() {
     setIsSoilMgmtModalOpen(false)
   }
 
+  // Massing Logic
+  const handleMassingChange = (k, v) => setMassingInputs(p => ({ ...p, [k]: parseFloat(v) || 0 }))
+  const handleMassingUpdate = async () => {
+    if (selectedProject) await axios.put(`${API_URL}/projects/${selectedProject.id}`, {
+      ...selectedProject,
+      massing_design_coverage: massingInputs.design_coverage,
+      massing_exemption_coef: massingInputs.exemption_coef,
+      massing_public_ratio: massingInputs.public_ratio,
+      massing_me_rate: massingInputs.me_rate,
+      massing_stair_rate: massingInputs.stair_rate,
+
+      massing_balcony_rate: massingInputs.balcony_rate,
+      usage_residential_rate: massingInputs.residential_rate,
+      usage_commercial_rate: massingInputs.commercial_rate,
+      usage_agency_rate: massingInputs.agency_rate,
+      basement_legal_parking: basementInputs.legal_parking,
+      basement_bonus_parking: basementInputs.bonus_parking,
+      basement_excavation_rate: basementInputs.excavation_rate,
+      basement_parking_space_area: basementInputs.parking_space_area,
+      basement_floor_height: basementInputs.floor_height,
+      basement_motorcycle_unit_area: basementInputs.motorcycle_unit_area,
+      basement_legal_motorcycle: basementInputs.legal_motorcycle
+    })
+  }
+
+  const handleBasementChange = (k, v) => setBasementInputs(p => ({ ...p, [k]: parseFloat(v) || 0 }))
+  const handleBasementUpdate = async () => { await handleMassingUpdate() } // Reuse massing update for simplicity as it puts full object
+
   const fetchDataAndSync = (data) => {
     setSelectedProject(data);
     setProjects(projects.map(p => p.id === data.id ? data : p))
@@ -361,7 +426,57 @@ function App() {
   const actualBonus = Math.min(applicationTotal, bonusData.bonus_cap)
   const totalAllowedRate = 100 + actualBonus + bonusData.bonus_public_exemption + bonusData.bonus_tod_increment
 
-  // --- UI Sub-components ---
+  // Massing Calculations
+  const allowedVolumeArea = baseVolume * (totalAllowedRate / 100)
+  const massingMEArea = allowedVolumeArea * (massingInputs.me_rate / 100)
+  const massingStairArea = (allowedVolumeArea + massingMEArea) * (massingInputs.stair_rate / 100)
+  const massingBalconyArea = (allowedVolumeArea + massingMEArea) * (massingInputs.balcony_rate / 100)
+  const massingGFA_NoBalcony = allowedVolumeArea + massingMEArea + massingStairArea
+  const massingGFA_Total = massingGFA_NoBalcony + massingBalconyArea
+  // Formula: (Allowed + Balcony) / (1 - Public%)
+  // Note: Public ratio is stored as percentage (e.g., 33.0), so we use /100
+  const estRegisteredArea = (allowedVolumeArea + massingBalconyArea) / (1 - (massingInputs.public_ratio / 100))
+  const saleableRatio = allowedVolumeArea > 0 ? (estRegisteredArea / allowedVolumeArea) : 0
+  const estSingleFloorArea = calculateTotalSiteArea() * (massingInputs.design_coverage / 100)
+  const estFloors = estSingleFloorArea > 0 ? Math.ceil(massingGFA_Total / estSingleFloorArea) : 0
+
+  const estimatedSalesPing = massingGFA_Total * 0.3025
+
+  // Basement Calculations
+  const calcTotalParking = basementInputs.legal_parking + basementInputs.bonus_parking
+  const basementFloorArea = calculateTotalSiteArea() * (basementInputs.excavation_rate / 100)
+
+  // Revised Floors Calculation: (Total Cars * Car Area + Total Motos * Moto Area) / Single Floor Area
+  const totalRequiredArea = (calcTotalParking * basementInputs.parking_space_area) + (basementInputs.legal_motorcycle * basementInputs.motorcycle_unit_area)
+  const estBasementFloors = basementFloorArea > 0 ? Math.ceil(totalRequiredArea / basementFloorArea) : 0
+  const spotsPerFloor = estBasementFloors > 0 ? Math.floor(calcTotalParking / estBasementFloors) : 0 // Approx avg
+
+  const totalExcavationDepth = (estBasementFloors * basementInputs.floor_height) + 1.5
+  const basementTotalGFA = basementFloorArea * estBasementFloors
+
+  const handleAutoCalcLegalParking = () => {
+    // Weighted logic: Res/120 + Com/100 + Agency/140 (Using GFA No Balcony)
+    const resArea = massingGFA_NoBalcony * (massingInputs.residential_rate / 100)
+    const comArea = massingGFA_NoBalcony * (massingInputs.commercial_rate / 100)
+    const agencyArea = massingGFA_NoBalcony * (massingInputs.agency_rate / 100)
+
+    const val = Math.ceil((resArea / 120) + (comArea / 100) + (agencyArea / 140))
+    handleBasementChange('legal_parking', val)
+    // Save to server is triggered by user actions usually, but here we update state.
+    // Ideally we should sync this state change to DB on blur or explicit save.
+    // Current pattern relies on onBlur of the input field. User might not blur if they just click generic Calc.
+    // For now, user sees the value and can edit or focus/blur to save.
+  }
+
+  const handleAutoCalcMotorcycle = () => {
+    // Logic: Com/200, Res/100, Agency/140
+    const resMoto = (massingGFA_NoBalcony * (massingInputs.residential_rate / 100)) / 100
+    const comMoto = (massingGFA_NoBalcony * (massingInputs.commercial_rate / 100)) / 200
+    const agencyMoto = (massingGFA_NoBalcony * (massingInputs.agency_rate / 100)) / 140
+
+    const val = Math.ceil(resMoto + comMoto + agencyMoto)
+    handleBasementChange('legal_motorcycle', val)
+  }
 
   const RenderBonusRow = ({ label, name, value, note, isInput = true, isPink = false, icon = null, onIconClick = null }) => (
     <tr className={isPink ? "bg-red-50" : ""}>
@@ -415,7 +530,10 @@ function App() {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                   <h3 className="font-bold text-gray-700 flex items-center gap-2"><span className="w-2 h-6 bg-blue-500 rounded-full"></span>土地資料 Land Parcels</h3>
-                  <button onClick={openCreateModal} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-sm transition-all text-sm font-medium"><Plus size={16} /> 新增地號</button>
+                  <div className="flex gap-2">
+                    <a href="https://cloud.land.gov.taipei/cloud/map/index.html?fun=g11" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg shadow-sm transition-all text-sm font-medium"><Map size={16} /> 台北市地政雲</a>
+                    <button onClick={openCreateModal} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-sm transition-all text-sm font-medium"><Plus size={16} /> 新增地號</button>
+                  </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
@@ -472,6 +590,194 @@ function App() {
                       </tr>
                     </tbody>
                   </table>
+                </div>
+              </div>
+
+              {/* Massing Assessment Section */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="p-6 border-b border-gray-100 bg-gray-50 h-16 flex items-center"><h3 className="font-bold text-gray-700 flex items-center gap-2"><span className="w-2 h-6 bg-purple-500 rounded-full"></span>🏢 建築開發量體初期評估</h3></div>
+                <div className="p-6 space-y-6">
+                  <div className="grid grid-cols-4 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">設計建築面積 (m²)</label>
+                      <div className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-100 text-gray-600">
+                        {estSingleFloorArea.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">設計建蔽率 (%)</label>
+                      <input type="number" value={massingInputs.design_coverage} onChange={(e) => handleMassingChange('design_coverage', e.target.value)} onBlur={handleMassingUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">免計容積係數</label>
+                      <input type="number" value={massingInputs.exemption_coef} onChange={(e) => handleMassingChange('exemption_coef', e.target.value)} onBlur={handleMassingUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" step="0.01" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">公設比 (%)</label>
+                      <input type="number" value={massingInputs.public_ratio} onChange={(e) => handleMassingChange('public_ratio', e.target.value)} onBlur={handleMassingUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                    </div>
+                  </div>
+
+                  {/* Additional Massing Fields Row */}
+                  <div className="grid grid-cols-4 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">機電管委會 (%)</label>
+                      <input type="number" value={massingInputs.me_rate} onChange={(e) => handleMassingChange('me_rate', e.target.value)} onBlur={handleMassingUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">機電管委會面積 (m²)</label>
+                      <div className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-100 text-gray-600">
+                        {massingMEArea.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">梯廳 (%)</label>
+                      <input type="number" value={massingInputs.stair_rate} onChange={(e) => handleMassingChange('stair_rate', e.target.value)} onBlur={handleMassingUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">梯廳面積 (m²)</label>
+                      <div className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-100 text-gray-600">
+                        {massingStairArea.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">陽台 (%)</label>
+                      <input type="number" value={massingInputs.balcony_rate} onChange={(e) => handleMassingChange('balcony_rate', e.target.value)} onBlur={handleMassingUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">陽台面積 (m²)</label>
+                      <div className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-100 text-gray-600">
+                        {massingBalconyArea.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Usage Mix Section */}
+                  <div className="border-t pt-4 mt-2">
+                    <label className="block text-sm font-bold text-gray-700 mb-2">用途分配 (Usage Mix) - 總和驗證: <span className={(massingInputs.residential_rate + massingInputs.commercial_rate + massingInputs.agency_rate) === 100 ? "text-green-600" : "text-red-600"}>{(massingInputs.residential_rate + massingInputs.commercial_rate + massingInputs.agency_rate).toFixed(1)}%</span></label>
+                    <div className="grid grid-cols-3 gap-6">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">住宅用途 (%)</label>
+                        <input type="number" value={massingInputs.residential_rate} onChange={(e) => handleMassingChange('residential_rate', e.target.value)} onBlur={handleMassingUpdate} className="w-full border p-2 rounded text-base font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                        <div className="text-center text-xs text-gray-400 mt-1">{(massingGFA_NoBalcony * massingInputs.residential_rate / 100).toLocaleString(undefined, { maximumFractionDigits: 1 })} m²</div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">商業用途 (%)</label>
+                        <input type="number" value={massingInputs.commercial_rate} onChange={(e) => handleMassingChange('commercial_rate', e.target.value)} onBlur={handleMassingUpdate} className="w-full border p-2 rounded text-base font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                        <div className="text-center text-xs text-gray-400 mt-1">{(massingGFA_NoBalcony * massingInputs.commercial_rate / 100).toLocaleString(undefined, { maximumFractionDigits: 1 })} m²</div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">機關用途 (%)</label>
+                        <input type="number" value={massingInputs.agency_rate} onChange={(e) => handleMassingChange('agency_rate', e.target.value)} onBlur={handleMassingUpdate} className="w-full border p-2 rounded text-base font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                        <div className="text-center text-xs text-gray-400 mt-1">{(massingGFA_NoBalcony * massingInputs.agency_rate / 100).toLocaleString(undefined, { maximumFractionDigits: 1 })} m²</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full text-center">
+                      <thead className="bg-purple-50 text-purple-900">
+                        <tr>
+                          <th className="py-3 font-bold border-r border-purple-100">總樓地板面積 (GFA)<br /><span className="text-xs font-normal">(不含陽台)</span></th>
+                          <th className="py-3 font-bold border-r border-purple-100">總樓地板面積 (GFA)<br /><span className="text-xs font-normal">(含陽台)</span></th>
+                          <th className="py-3 font-bold border-r border-purple-100">預估登記面積<br /><span className="text-xs font-normal">((允建+陽台)/(1-公設))</span></th>
+                          <th className="py-3 font-bold border-r border-purple-100">銷坪比<br /><span className="text-xs font-normal">(登記/允建)</span></th>
+                          <th className="py-3 font-bold">預估樓層數</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white text-lg">
+                        <tr>
+                          <td className="py-4 border-r border-gray-100 font-mono">{massingGFA_NoBalcony.toLocaleString(undefined, { maximumFractionDigits: 1 })} m²</td>
+                          <td className="py-4 border-r border-gray-100 font-mono text-blue-800">{massingGFA_Total.toLocaleString(undefined, { maximumFractionDigits: 1 })} m²</td>
+                          <td className="py-4 border-r border-gray-100 font-mono font-bold text-indigo-700">{estRegisteredArea.toLocaleString(undefined, { maximumFractionDigits: 1 })} m²</td>
+                          <td className="py-4 border-r border-gray-100 font-mono font-bold text-gray-700">{saleableRatio.toFixed(2)}</td>
+                          <td className="py-4 font-bold text-purple-700">{estFloors} F</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="text-xs text-gray-500 flex flex-col items-end gap-1 mt-2">
+                    <span>* 允建容積面積 = 法定基準容積 × (1 + 總獎勵率) ({allowedVolumeArea.toLocaleString(undefined, { maximumFractionDigits: 0 })} m²)</span>
+                    <span>* 預估單層面積 = 基地面積 × 設計建蔽率 ({estSingleFloorArea.toLocaleString(undefined, { maximumFractionDigits: 0 })} m²)</span>
+                    <span>* GFA (不含陽台) = 允建 {allowedVolumeArea.toLocaleString(undefined, { maximumFractionDigits: 0 })} + 機電 {massingMEArea.toLocaleString(undefined, { maximumFractionDigits: 0 })} + 梯廳 {massingStairArea.toLocaleString(undefined, { maximumFractionDigits: 0 })} ({massingGFA_NoBalcony.toLocaleString(undefined, { maximumFractionDigits: 0 })} m²)</span>
+                    <span>* 陽台面積 = (允建 + 機電) × 陽台率 ({massingBalconyArea.toLocaleString(undefined, { maximumFractionDigits: 0 })} m²)</span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="p-6 border-b border-gray-100 bg-gray-50 h-16 flex items-center"><h3 className="font-bold text-gray-700 flex items-center gap-2"><span className="w-2 h-6 bg-gray-500 rounded-full"></span>🏗️ 地下層評估 (Basement Assessment)</h3></div>
+                <div className="p-6 space-y-6">
+                  <div className="grid grid-cols-4 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">地下室開挖率 (%)</label>
+                      <input type="number" value={basementInputs.excavation_rate} onChange={(e) => handleBasementChange('excavation_rate', e.target.value)} onBlur={handleBasementUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">地下室開挖面積 (m²)</label>
+                      <div className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-100 text-gray-600">
+                        {basementFloorArea.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">單層樓高 (m)</label>
+                      <input type="number" value={basementInputs.floor_height} onChange={(e) => handleBasementChange('floor_height', e.target.value)} onBlur={handleBasementUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">獎勵/增設停車位</label>
+                      <input type="number" value={basementInputs.bonus_parking} onChange={(e) => handleBasementChange('bonus_parking', e.target.value)} onBlur={handleBasementUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                    </div>
+                  </div>
+
+                  {/* Car & Motorcycle Parking Review */}
+                  <div className="border-t pt-4 mt-4">
+                    <label className="block text-sm font-bold text-gray-700 mb-2">汽機車位檢討</label>
+                    <div className="grid grid-cols-4 gap-6">
+                      {/* Car Parking */}
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2 flex justify-between">法定停車位 <button onClick={handleAutoCalcLegalParking} className="text-xs text-blue-600 hover:underline">Auto Calc</button></label>
+                        <input type="number" value={basementInputs.legal_parking} onChange={(e) => handleBasementChange('legal_parking', e.target.value)} onBlur={handleBasementUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                        <div className="mt-1 space-y-0.5">
+                          <div className="text-[10px] text-gray-500 flex justify-between"><span>住宅({massingInputs.residential_rate}%, /120):</span> <span>{((massingGFA_NoBalcony * massingInputs.residential_rate / 100) / 120).toFixed(1)}</span></div>
+                          <div className="text-[10px] text-gray-500 flex justify-between"><span>商業({massingInputs.commercial_rate}%, /100):</span> <span>{((massingGFA_NoBalcony * massingInputs.commercial_rate / 100) / 100).toFixed(1)}</span></div>
+                          <div className="text-[10px] text-gray-500 flex justify-between"><span>機關({massingInputs.agency_rate}%, /140):</span> <span>{((massingGFA_NoBalcony * massingInputs.agency_rate / 100) / 140).toFixed(1)}</span></div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">單車位需求 (m²)</label>
+                        <input type="number" value={basementInputs.parking_space_area} onChange={(e) => handleBasementChange('parking_space_area', e.target.value)} onBlur={handleBasementUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                      </div>
+
+                      {/* Motorcycle Parking */}
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2 flex justify-between">法定機車位 <button onClick={handleAutoCalcMotorcycle} className="text-xs text-blue-600 hover:underline">Auto Calc</button></label>
+                        <input type="number" value={basementInputs.legal_motorcycle} onChange={(e) => handleBasementChange('legal_motorcycle', e.target.value)} onBlur={handleBasementUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                        <div className="mt-1 space-y-0.5">
+                          <div className="text-[10px] text-gray-500 flex justify-between"><span>住宅(/100):</span> <span>{((massingGFA_NoBalcony * massingInputs.residential_rate / 100) / 100).toFixed(1)}</span></div>
+                          <div className="text-[10px] text-gray-500 flex justify-between"><span>商業(/200):</span> <span>{((massingGFA_NoBalcony * massingInputs.commercial_rate / 100) / 200).toFixed(1)}</span></div>
+                          <div className="text-[10px] text-gray-500 flex justify-between"><span>機關(/140):</span> <span>{((massingGFA_NoBalcony * massingInputs.agency_rate / 100) / 140).toFixed(1)}</span></div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">單機車位面積 (m²)</label>
+                        <input type="number" value={basementInputs.motorcycle_unit_area} onChange={(e) => handleBasementChange('motorcycle_unit_area', e.target.value)} onBlur={handleBasementUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg overflow-hidden bg-gray-50 mt-6">
+                    <div className="grid grid-cols-4 divide-x divide-gray-200 border-b border-gray-200">
+                      <div className="p-4 text-center"><div className="text-xs text-gray-500 mb-1">總停車位數</div><div className="text-xl font-bold text-gray-800">{calcTotalParking} 輛</div></div>
+                      <div className="p-4 text-center"><div className="text-xs text-gray-500 mb-1">地下室單層面積</div><div className="text-xl font-bold text-gray-800">{basementFloorArea.toLocaleString(undefined, { maximumFractionDigits: 1 })} m²</div></div>
+                      <div className="p-4 text-center"><div className="text-xs text-gray-500 mb-1">地下室總需求面積</div><div className="text-xl font-bold text-gray-800">{totalRequiredArea.toLocaleString(undefined, { maximumFractionDigits: 1 })} m²</div></div>
+                      <div className="p-4 text-center"><div className="text-xs text-gray-500 mb-1">地下室總樓地板</div><div className="text-xl font-bold text-gray-800">{basementTotalGFA.toLocaleString(undefined, { maximumFractionDigits: 1 })} m²</div></div>
+                    </div>
+                    <div className="grid grid-cols-2 divide-x divide-gray-200 bg-gray-100">
+                      <div className="p-4 text-center flex flex-col justify-center"><div className="text-xs text-gray-500 mb-1">預估開挖樓層</div><div className="text-2xl font-bold text-purple-700">B{estBasementFloors}</div></div>
+                      <div className="p-4 text-center flex flex-col justify-center"><div className="text-xs text-gray-500 mb-1">預估開挖深度</div><div className="text-2xl font-bold text-purple-700">{totalExcavationDepth.toFixed(1)} m</div><div className="text-[10px] text-gray-400 mt-1">({estBasementFloors} * {basementInputs.floor_height} + 1.5)</div></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
