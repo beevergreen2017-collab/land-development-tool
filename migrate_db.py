@@ -21,32 +21,51 @@ def migrate():
         columns = [info[1] for info in cursor.fetchall()]
         print(f"Existing columns: {columns}")
 
-        new_columns = {
-            "bonus_central": "FLOAT DEFAULT 0.0",
-            "bonus_local": "FLOAT DEFAULT 0.0",
+        all_new_columns = {
+            # Bonus Fields
+            "bonus_central": "FLOAT DEFAULT 30.0",
+            "bonus_local": "FLOAT DEFAULT 20.0",
             "bonus_other": "FLOAT DEFAULT 0.0",
             "bonus_soil_mgmt": "FLOAT DEFAULT 0.0",
             "bonus_tod_reward": "FLOAT DEFAULT 0.0",
             "bonus_tod_increment": "FLOAT DEFAULT 0.0",
             "bonus_chloride": "FLOAT DEFAULT 0.0",
-            "bonus_public_exemption": "FLOAT DEFAULT 0.0",
+            "bonus_public_exemption": "FLOAT DEFAULT 7.98",
             "bonus_cap": "FLOAT DEFAULT 100.0",
+            "bonus_tod": "FLOAT DEFAULT 0.0",
+
+            # Massing Fields
             "massing_design_coverage": "FLOAT DEFAULT 45.0",
             "massing_exemption_coef": "FLOAT DEFAULT 1.15",
             "massing_public_ratio": "FLOAT DEFAULT 33.0",
             "massing_me_rate": "FLOAT DEFAULT 15.0",
-            "massing_stair_rate": "FLOAT DEFAULT 10.0"
+            "massing_stair_rate": "FLOAT DEFAULT 10.0",
+            "massing_balcony_rate": "FLOAT DEFAULT 5.0",
+
+            # Basement Fields
+            "basement_legal_parking": "INTEGER DEFAULT 0",
+            "basement_bonus_parking": "INTEGER DEFAULT 0",
+            "basement_excavation_rate": "FLOAT DEFAULT 70.0",
+            "basement_parking_space_area": "FLOAT DEFAULT 40.0",
+            "basement_floor_height": "FLOAT DEFAULT 3.3",
+            "basement_motorcycle_unit_area": "FLOAT DEFAULT 4.0",
+            "basement_legal_motorcycle": "INTEGER DEFAULT 0",
+
+            # Usage Mix Fields
+            "usage_residential_rate": "FLOAT DEFAULT 60.0",
+            "usage_commercial_rate": "FLOAT DEFAULT 30.0",
+            "usage_agency_rate": "FLOAT DEFAULT 10.0"
         }
 
-        for col, definition in new_columns.items():
+        for col, definition in all_new_columns.items():
             if col not in columns:
                 try:
                     print(f"Adding missing column: {col}")
                     cursor.execute(f"ALTER TABLE projects ADD COLUMN {col} {definition}")
                 except sqlite3.OperationalError as e:
                     print(f"Error adding {col}: {e}")
-            else:
-                print(f"Column '{col}' already exists.")
+            # else:
+            #     print(f"Column '{col}' already exists.")
 
     except Exception as e:
         print(f"Error accessing projects table: {e}")

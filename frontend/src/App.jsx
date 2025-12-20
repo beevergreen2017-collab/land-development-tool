@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Plus, Trash2, Calculator, Search, Save, Edit, Menu, X, List, CheckCircle, AlertTriangle, Map } from 'lucide-react'
+import LandMap from './components/LandMap'
+import Massing3D from './components/Massing3D'
+
 
 const envApiUrl = import.meta.env.VITE_API_URL;
 const API_URL = envApiUrl || 'http://localhost:8001';
@@ -125,6 +128,7 @@ function App() {
     legal_floor_area_rate: '225',
     road_width: ''
   })
+  const [drawnArea, setDrawnArea] = useState(0);
 
   // Bonus Calculation Data (Persisted in Project)
   const [bonusData, setBonusData] = useState({
@@ -481,10 +485,10 @@ function App() {
   const RenderBonusRow = ({ label, name, value, note, isInput = true, isPink = false, icon = null, onIconClick = null }) => (
     <tr className={isPink ? "bg-red-50" : ""}>
       <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-r">
-        <div className="flex items-center">{label} {icon && <button onClick={onIconClick} className="ml-2 text-blue-500 bg-blue-50 p-1 rounded-full"><List size={16} /></button>}</div>
+        <div className="flex items-center text-sm font-medium text-gray-900">{label} {icon && <button onClick={onIconClick} className="ml-2 text-blue-500 bg-blue-50 p-1 rounded-full"><List size={16} /></button>}</div>
       </td>
       <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-r w-40">
-        {isInput ? <div className="flex items-center"><input type="number" name={name} value={value} onChange={handleBonusChange} onBlur={handleBonusUpdate} className="w-full bg-yellow-50 border-gray-300 rounded px-2 py-1 text-right" /><span className="ml-2">%</span></div> : <div className="text-right px-2">{value}%</div>}
+        {isInput ? <div className="flex items-center"><input type="number" name={name} value={value} onChange={handleBonusChange} onBlur={handleBonusUpdate} className="w-full text-sm bg-yellow-50 border-gray-300 rounded px-2 py-1 text-right" /><span className="ml-2 text-sm">%</span></div> : <div className="text-right px-2 text-sm">{value}%</div>}
       </td>
       <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-r text-right">{(baseVolume * value / 100).toLocaleString(undefined, { maximumFractionDigits: 1 })} m²</td>
       <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-500">{note}</td>
@@ -518,7 +522,7 @@ function App() {
       <div className="flex-1 flex flex-col overflow-hidden bg-gray-50">
         <header className="h-16 bg-white shadow-sm border-b flex items-center justify-between px-8 z-10">
           <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold text-gray-800">{selectedProject ? selectedProject.name : 'Select a Project'}</h2>
+            <h2 className="text-2xl font-bold text-gray-800">{selectedProject ? selectedProject.name : 'Select a Project'}</h2>
             {selectedProject && <button onClick={() => { setIsRenameModalOpen(true); setRenameProjectName(selectedProject.name) }} className="text-gray-400 hover:text-gray-600"><Edit size={16} /></button>}
           </div>
         </header>
@@ -529,7 +533,10 @@ function App() {
               {/* Land Parcels Section */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                  <h3 className="font-bold text-gray-700 flex items-center gap-2"><span className="w-2 h-6 bg-blue-500 rounded-full"></span>土地資料 Land Parcels</h3>
+                  <h3 className="text-lg font-bold text-gray-700 border-l-4 border-blue-500 pl-3 flex items-center gap-2">
+                    土地資料 Land Parcels
+                    {drawnArea > 0 && <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full border border-red-200">圖面估算: {drawnArea.toLocaleString()} m²</span>}
+                  </h3>
                   <div className="flex gap-2">
                     <a href="https://cloud.land.gov.taipei/cloud/map/index.html?fun=g11" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg shadow-sm transition-all text-sm font-medium"><Map size={16} /> 台北市地政雲</a>
                     <button onClick={openCreateModal} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-sm transition-all text-sm font-medium"><Plus size={16} /> 新增地號</button>
@@ -537,30 +544,35 @@ function App() {
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
-                    <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
-                      <tr><th className="px-6 py-4 font-bold">行政區</th><th className="px-6 py-4 font-bold">段名</th><th className="px-6 py-4 font-bold">地號</th><th className="px-6 py-4 font-bold text-right">面積 (m²)</th><th className="px-6 py-4 font-bold">分區</th><th className="px-6 py-4 font-bold text-right">建蔽率 (%)</th><th className="px-6 py-4 font-bold text-right">容積率 (%)</th><th className="px-6 py-4 font-bold text-right">允建容積 (m²)</th><th className="px-6 py-4 font-bold text-center">操作</th></tr>
+                    <thead className="bg-gray-50 text-gray-600 text-sm font-bold uppercase tracking-wider">
+                      <tr><th className="px-6 py-3">行政區</th><th className="px-6 py-3">段名</th><th className="px-6 py-3">地號</th><th className="px-6 py-3 text-right">面積 (m²)</th><th className="px-6 py-3">分區</th><th className="px-6 py-3 text-right">建蔽率 (%)</th><th className="px-6 py-3 text-right">容積率 (%)</th><th className="px-6 py-3 text-right">允建容積 (m²)</th><th className="px-6 py-3 text-center">操作</th></tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {selectedProject.land_parcels.map((parcel) => (
-                        <tr key={parcel.id} className="hover:bg-blue-50 transition-colors">
-                          <td className="px-6 py-4 font-medium text-gray-900">{parcel.district}</td><td className="px-6 py-4 text-gray-600">{parcel.section_name}</td><td className="px-6 py-4 text-gray-600 font-mono">{parcel.lot_number}</td><td className="px-6 py-4 text-gray-900 font-mono text-right">{parcel.area_m2.toLocaleString()}</td><td className="px-6 py-4 text-gray-600"><span className="bg-gray-100 px-2 py-1 rounded text-xs border border-gray-200">{parcel.zoning_type}</span></td><td className="px-6 py-4 text-gray-600 font-mono text-right">{parcel.legal_coverage_rate}</td><td className="px-6 py-4 text-gray-600 font-mono text-right">{parcel.legal_floor_area_rate}</td><td className="px-6 py-4 text-gray-600 font-mono text-right">{(parcel.area_m2 * parcel.legal_floor_area_rate / 100).toLocaleString(undefined, { maximumFractionDigits: 1 })}</td>
-                          <td className="px-6 py-4 text-center"><button onClick={() => handleEditParcel(parcel)} className="text-gray-400 hover:text-blue-600 transition-colors mx-1"><Edit size={16} /></button></td>
+                        <tr key={parcel.id} className="hover:bg-blue-50 transition-colors border-b border-gray-100 text-sm text-gray-900">
+                          <td className="px-6 py-3 font-medium">{parcel.district}</td><td className="px-6 py-3 text-gray-600">{parcel.section_name}</td><td className="px-6 py-3 text-gray-600 font-mono">{parcel.lot_number}</td><td className="px-6 py-3 font-mono text-right">{parcel.area_m2.toLocaleString()}</td><td className="px-6 py-3 text-gray-600"><span className="bg-gray-100 px-2 py-1 rounded text-xs border border-gray-200">{parcel.zoning_type}</span></td><td className="px-6 py-3 text-gray-600 font-mono text-right">{parcel.legal_coverage_rate}</td><td className="px-6 py-3 text-gray-600 font-mono text-right">{parcel.legal_floor_area_rate}</td><td className="px-6 py-3 text-gray-600 font-mono text-right">{(parcel.area_m2 * parcel.legal_floor_area_rate / 100).toLocaleString(undefined, { maximumFractionDigits: 1 })}</td>
+                          <td className="px-6 py-3 text-center"><button onClick={() => handleEditParcel(parcel)} className="text-gray-400 hover:text-blue-600 transition-colors mx-1"><Edit size={16} /></button></td>
                         </tr>
                       ))}
-                      <tr className="bg-gray-50 font-bold border-t-2 border-gray-100">
-                        <td colSpan="3" className="px-6 py-4 text-right text-gray-700">總計 Total</td><td className="px-6 py-4 text-right text-blue-700">{selectedProject.land_parcels.reduce((sum, p) => sum + p.area_m2, 0).toLocaleString()}</td><td colSpan="3"></td><td className="px-6 py-4 text-right text-blue-700">{selectedProject.land_parcels.reduce((sum, p) => sum + (p.area_m2 * p.legal_floor_area_rate / 100), 0).toLocaleString(undefined, { maximumFractionDigits: 1 })}</td><td></td>
+                      <tr className="bg-gray-50 font-bold border-t-2 border-gray-100 text-sm">
+                        <td colSpan="3" className="px-6 py-3 text-right text-gray-700">總計 Total</td><td className="px-6 py-3 text-right text-blue-700">{selectedProject.land_parcels.reduce((sum, p) => sum + p.area_m2, 0).toLocaleString()}</td><td colSpan="3"></td><td className="px-6 py-3 text-right text-blue-700">{selectedProject.land_parcels.reduce((sum, p) => sum + (p.area_m2 * p.legal_floor_area_rate / 100), 0).toLocaleString(undefined, { maximumFractionDigits: 1 })}</td><td></td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
 
+              {/* Map View Section */}
+              <LandMap onAreaChange={setDrawnArea} />
+
               {/* Bonus Calculation Table */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-6 border-b border-gray-100 bg-gray-50 h-16 flex items-center"><h3 className="font-bold text-gray-700 flex items-center gap-2"><span className="w-2 h-6 bg-yellow-500 rounded-full"></span>🏆 容積獎勵計算</h3></div>
+                <div className="p-6 border-b border-gray-100 bg-gray-50 h-16 flex items-center">
+                  <h3 className="text-lg font-bold text-gray-700 border-l-4 border-yellow-500 pl-3 flex items-center gap-2">容積獎勵計算</h3>
+                </div>
                 <div className="p-6">
                   <table className="w-full">
-                    <thead><tr className="border-b-2 border-gray-200 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"><th className="pb-3 pl-6">項目</th><th className="pb-3 w-40">比值 %</th><th className="pb-3 text-right">面積 (m²)</th><th className="pb-3">備註</th></tr></thead>
+                    <thead><tr className="border-b border-gray-200 text-left text-sm font-bold text-gray-600 uppercase tracking-wider"><th className="pb-3 pl-6">項目</th><th className="pb-3 w-40">比值 %</th><th className="pb-3 text-right">面積 (m²)</th><th className="pb-3">備註</th></tr></thead>
                     <tbody className="divide-y divide-gray-100">
                       <RenderBonusRow label="中央都更獎勵" name="bonus_central" value={bonusData.bonus_central} icon={List} onIconClick={() => setIsCentralBonusModalOpen(true)} />
                       <RenderBonusRow label="地方都更獎勵" name="bonus_local" value={bonusData.bonus_local} icon={List} onIconClick={() => setIsLocalBonusModalOpen(true)} />
@@ -595,7 +607,9 @@ function App() {
 
               {/* Massing Assessment Section */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-6 border-b border-gray-100 bg-gray-50 h-16 flex items-center"><h3 className="font-bold text-gray-700 flex items-center gap-2"><span className="w-2 h-6 bg-purple-500 rounded-full"></span>🏢 建築開發量體初期評估</h3></div>
+                <div className="p-6 border-b border-gray-100 bg-gray-50 h-16 flex items-center">
+                  <h3 className="text-lg font-bold text-gray-700 border-l-4 border-purple-500 pl-3 flex items-center gap-2">建築開發量體初期評估</h3>
+                </div>
                 <div className="p-6 space-y-6">
                   <div className="grid grid-cols-4 gap-6">
                     <div>
@@ -606,7 +620,7 @@ function App() {
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">設計建蔽率 (%)</label>
-                      <input type="number" value={massingInputs.design_coverage} onChange={(e) => handleMassingChange('design_coverage', e.target.value)} onBlur={handleMassingUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                      <input type="number" value={massingInputs.design_coverage || 0} onChange={(e) => handleMassingChange('design_coverage', e.target.value)} onBlur={handleMassingUpdate} className="w-full text-sm border p-2 rounded font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">免計容積係數</label>
@@ -707,12 +721,14 @@ function App() {
                 </div>
               </div>
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-6 border-b border-gray-100 bg-gray-50 h-16 flex items-center"><h3 className="font-bold text-gray-700 flex items-center gap-2"><span className="w-2 h-6 bg-gray-500 rounded-full"></span>🏗️ 地下層評估 (Basement Assessment)</h3></div>
+                <div className="p-6 border-b border-gray-100 bg-gray-50 h-16 flex items-center">
+                  <h3 className="text-lg font-bold text-gray-700 border-l-4 border-gray-500 pl-3 flex items-center gap-2">地下層評估 (Basement)</h3>
+                </div>
                 <div className="p-6 space-y-6">
                   <div className="grid grid-cols-4 gap-6">
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">地下室開挖率 (%)</label>
-                      <input type="number" value={basementInputs.excavation_rate} onChange={(e) => handleBasementChange('excavation_rate', e.target.value)} onBlur={handleBasementUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                      <input type="number" value={basementInputs.excavation_rate || 0} onChange={(e) => handleBasementChange('excavation_rate', e.target.value)} onBlur={handleBasementUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">地下室開挖面積 (m²)</label>
@@ -726,7 +742,7 @@ function App() {
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">獎勵/增設停車位</label>
-                      <input type="number" value={basementInputs.bonus_parking} onChange={(e) => handleBasementChange('bonus_parking', e.target.value)} onBlur={handleBasementUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                      <input type="number" value={basementInputs.bonus_parking || 0} onChange={(e) => handleBasementChange('bonus_parking', e.target.value)} onBlur={handleBasementUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
                     </div>
                   </div>
 
@@ -737,7 +753,7 @@ function App() {
                       {/* Car Parking */}
                       <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2 flex justify-between">法定停車位 <button onClick={handleAutoCalcLegalParking} className="text-xs text-blue-600 hover:underline">Auto Calc</button></label>
-                        <input type="number" value={basementInputs.legal_parking} onChange={(e) => handleBasementChange('legal_parking', e.target.value)} onBlur={handleBasementUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                        <input type="number" value={basementInputs.legal_parking || 0} onChange={(e) => handleBasementChange('legal_parking', e.target.value)} onBlur={handleBasementUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
                         <div className="mt-1 space-y-0.5">
                           <div className="text-[10px] text-gray-500 flex justify-between"><span>住宅({massingInputs.residential_rate}%, /120):</span> <span>{((massingGFA_NoBalcony * massingInputs.residential_rate / 100) / 120).toFixed(1)}</span></div>
                           <div className="text-[10px] text-gray-500 flex justify-between"><span>商業({massingInputs.commercial_rate}%, /100):</span> <span>{((massingGFA_NoBalcony * massingInputs.commercial_rate / 100) / 100).toFixed(1)}</span></div>
@@ -752,7 +768,7 @@ function App() {
                       {/* Motorcycle Parking */}
                       <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2 flex justify-between">法定機車位 <button onClick={handleAutoCalcMotorcycle} className="text-xs text-blue-600 hover:underline">Auto Calc</button></label>
-                        <input type="number" value={basementInputs.legal_motorcycle} onChange={(e) => handleBasementChange('legal_motorcycle', e.target.value)} onBlur={handleBasementUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
+                        <input type="number" value={basementInputs.legal_motorcycle || 0} onChange={(e) => handleBasementChange('legal_motorcycle', e.target.value)} onBlur={handleBasementUpdate} className="w-full border p-2 rounded text-lg font-mono text-center bg-gray-50 focus:bg-white transition-colors" />
                         <div className="mt-1 space-y-0.5">
                           <div className="text-[10px] text-gray-500 flex justify-between"><span>住宅(/100):</span> <span>{((massingGFA_NoBalcony * massingInputs.residential_rate / 100) / 100).toFixed(1)}</span></div>
                           <div className="text-[10px] text-gray-500 flex justify-between"><span>商業(/200):</span> <span>{((massingGFA_NoBalcony * massingInputs.commercial_rate / 100) / 200).toFixed(1)}</span></div>
@@ -768,16 +784,34 @@ function App() {
 
                   <div className="border rounded-lg overflow-hidden bg-gray-50 mt-6">
                     <div className="grid grid-cols-4 divide-x divide-gray-200 border-b border-gray-200">
-                      <div className="p-4 text-center"><div className="text-xs text-gray-500 mb-1">總停車位數</div><div className="text-xl font-bold text-gray-800">{calcTotalParking} 輛</div></div>
-                      <div className="p-4 text-center"><div className="text-xs text-gray-500 mb-1">地下室單層面積</div><div className="text-xl font-bold text-gray-800">{basementFloorArea.toLocaleString(undefined, { maximumFractionDigits: 1 })} m²</div></div>
-                      <div className="p-4 text-center"><div className="text-xs text-gray-500 mb-1">地下室總需求面積</div><div className="text-xl font-bold text-gray-800">{totalRequiredArea.toLocaleString(undefined, { maximumFractionDigits: 1 })} m²</div></div>
-                      <div className="p-4 text-center"><div className="text-xs text-gray-500 mb-1">地下室總樓地板</div><div className="text-xl font-bold text-gray-800">{basementTotalGFA.toLocaleString(undefined, { maximumFractionDigits: 1 })} m²</div></div>
+                      <div className="p-4 text-center"><div className="text-xs text-gray-500 mb-1">總停車位數</div><div className="text-lg font-bold text-gray-800">{calcTotalParking} 輛</div></div>
+                      <div className="p-4 text-center"><div className="text-xs text-gray-500 mb-1">地下室單層面積</div><div className="text-lg font-bold text-gray-800">{basementFloorArea.toLocaleString(undefined, { maximumFractionDigits: 1 })} m²</div></div>
+                      <div className="p-4 text-center"><div className="text-xs text-gray-500 mb-1">地下室總需求面積</div><div className="text-lg font-bold text-gray-800">{totalRequiredArea.toLocaleString(undefined, { maximumFractionDigits: 1 })} m²</div></div>
+                      <div className="p-4 text-center"><div className="text-xs text-gray-500 mb-1">地下室總樓地板</div><div className="text-lg font-bold text-gray-800">{basementTotalGFA.toLocaleString(undefined, { maximumFractionDigits: 1 })} m²</div></div>
                     </div>
                     <div className="grid grid-cols-2 divide-x divide-gray-200 bg-gray-100">
-                      <div className="p-4 text-center flex flex-col justify-center"><div className="text-xs text-gray-500 mb-1">預估開挖樓層</div><div className="text-2xl font-bold text-purple-700">B{estBasementFloors}</div></div>
-                      <div className="p-4 text-center flex flex-col justify-center"><div className="text-xs text-gray-500 mb-1">預估開挖深度</div><div className="text-2xl font-bold text-purple-700">{totalExcavationDepth.toFixed(1)} m</div><div className="text-[10px] text-gray-400 mt-1">({estBasementFloors} * {basementInputs.floor_height} + 1.5)</div></div>
+                      <div className="p-4 text-center flex flex-col justify-center"><div className="text-xs text-gray-500 mb-1">預估開挖樓層</div><div className="text-lg font-bold text-purple-700">B{estBasementFloors}</div></div>
+                      <div className="p-4 text-center flex flex-col justify-center"><div className="text-xs text-gray-500 mb-1">預估開挖深度</div><div className="text-lg font-bold text-purple-700">{totalExcavationDepth.toFixed(1)} m</div><div className="text-[10px] text-gray-400 mt-1">({estBasementFloors} * {basementInputs.floor_height} + 1.5)</div></div>
                     </div>
                   </div>
+                </div>
+              </div>
+
+
+              {/* 3D Massing Preview Section */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="p-6 border-b border-gray-100 bg-gray-50 h-16 flex items-center">
+                  <h3 className="text-lg font-bold text-gray-700 border-l-4 border-blue-500 pl-3 flex items-center gap-2">3D 量體預覽 (Massing Preview)</h3>
+                </div>
+                <div className="p-6 h-[500px]">
+                  <Massing3D
+                    floors={estFloors}
+                    floor_height={3.3} // Standard estimation
+                    footprint_area={estSingleFloorArea}
+                    basement_floors={estBasementFloors}
+                    basement_area={basementFloorArea}
+                    basement_floor_height={basementInputs.floor_height}
+                  />
                 </div>
               </div>
             </div>
@@ -788,205 +822,219 @@ function App() {
             </div>
           )}
         </main>
-      </div>
+      </div >
 
       {/* --- MODALS --- */}
 
       {/* Project & Parcel Modals */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm">
-          <form onSubmit={handleParcelSubmit} className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-6 border-b bg-gray-50 flex justify-between items-center"><h3 className="font-bold text-lg">{editingParcelId ? 'Edit Parcel' : 'Add New Parcel'}</h3><button type="button" onClick={() => setIsModalOpen(false)}><X size={20} /></button></div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">行政區</label>
-                  <select name="district" value={newParcel.district} onChange={handleInputChange} className="w-full border rounded p-2">
-                    {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
+      {
+        isModalOpen && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm">
+            <form onSubmit={handleParcelSubmit} className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+              <div className="p-6 border-b bg-gray-50 flex justify-between items-center"><h3 className="font-bold text-lg">{editingParcelId ? 'Edit Parcel' : 'Add New Parcel'}</h3><button type="button" onClick={() => setIsModalOpen(false)}><X size={20} /></button></div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">行政區</label>
+                    <select name="district" value={newParcel.district || '萬華區'} onChange={handleInputChange} className="w-full border rounded p-2">
+                      {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">分區</label>
+                    <select name="zoning_type" value={newParcel.zoning_type || ''} onChange={handleZoneChange} className="w-full border rounded p-2">
+                      <option value="">選擇分區</option>
+                      {TAIPEI_ZONING_OPTIONS.map(z => <option key={z} value={z}>{z}</option>)}
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">分區</label>
-                  <select name="zoning_type" value={newParcel.zoning_type} onChange={handleZoneChange} className="w-full border rounded p-2">
-                    <option value="">選擇分區</option>
-                    {TAIPEI_ZONING_OPTIONS.map(z => <option key={z} value={z}>{z}</option>)}
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="block text-sm font-medium text-gray-700">段名</label><input type="text" name="section_name" value={newParcel.section_name || ''} onChange={handleInputChange} className="w-full border rounded p-2" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700">地號</label><input type="text" name="lot_number" value={newParcel.lot_number || ''} onChange={handleInputChange} className="w-full border rounded p-2" /></div>
+                </div>
+                <div><button type="button" onClick={handleAutoFetch} className="text-blue-600 text-sm hover:underline">Auto Fetch Info</button></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="block text-sm font-medium text-gray-700">面積 (m²)</label><input type="number" name="area_m2" value={newParcel.area_m2 || ''} onChange={handleInputChange} className="w-full border rounded p-2" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700">公告現值</label><input type="number" name="announced_value" value={newParcel.announced_value || ''} onChange={handleInputChange} className="w-full border rounded p-2" /></div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-gray-700">段名</label><input type="text" name="section_name" value={newParcel.section_name} onChange={handleInputChange} className="w-full border rounded p-2" /></div>
-                <div><label className="block text-sm font-medium text-gray-700">地號</label><input type="text" name="lot_number" value={newParcel.lot_number} onChange={handleInputChange} className="w-full border rounded p-2" /></div>
-              </div>
-              <div><button type="button" onClick={handleAutoFetch} className="text-blue-600 text-sm hover:underline">Auto Fetch Info</button></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-gray-700">面積 (m²)</label><input type="number" name="area_m2" value={newParcel.area_m2} onChange={handleInputChange} className="w-full border rounded p-2" /></div>
-                <div><label className="block text-sm font-medium text-gray-700">公告現值</label><input type="number" name="announced_value" value={newParcel.announced_value} onChange={handleInputChange} className="w-full border rounded p-2" /></div>
-              </div>
-            </div>
-            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3"><button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-700">Cancel</button><button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg">Save</button></div>
-          </form>
-        </div>
-      )}
+              <div className="p-6 border-t bg-gray-50 flex justify-end gap-3"><button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-700">Cancel</button><button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg">Save</button></div>
+            </form>
+          </div>
+        )
+      }
 
       {isProjectModalOpen && (<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"><form onSubmit={handleCreateProject} className="bg-white p-6 rounded-lg w-96"><h3 className="font-bold mb-4">New Project</h3><input value={newProjectName} onChange={e => setNewProjectName(e.target.value)} placeholder="Project Name" className="w-full border p-2 mb-4" /><div className="flex justify-end gap-2"><button type="button" onClick={() => setIsProjectModalOpen(false)} className="px-4 py-2">Cancel</button><button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Create</button></div></form></div>)}
       {isRenameModalOpen && (<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"><form onSubmit={handleRenameProject} className="bg-white p-6 rounded-lg w-96"><h3 className="font-bold mb-4">Rename Project</h3><input value={renameProjectName} onChange={e => setRenameProjectName(e.target.value)} className="w-full border p-2 mb-4" /><div className="flex justify-end gap-2"><button type="button" onClick={() => setIsRenameModalOpen(false)}>Cancel</button><button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">Save</button></div></form></div>)}
 
       {/* Central Bonus Modal */}
-      {isCentralBonusModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-            <div className="p-6 border-b bg-gray-50 flex justify-between items-center"><h2 className="text-xl font-bold flex items-center gap-2">📄 中央都市更新獎勵明細</h2><button onClick={() => setIsCentralBonusModalOpen(false)}><X size={24} /></button></div>
-            <div className="p-6 overflow-y-auto space-y-4">
-              {Object.entries(CENTRAL_BONUS_ITEMS).map(([key, item]) => (
-                <div key={key} className="p-4 border rounded-lg bg-gray-50 flex justify-between items-center">
-                  <div className="flex-1">
-                    <div className="font-bold text-gray-800">{item.title}</div>
-                    <div className="text-xs text-gray-500">{item.note} {item.unit && `(${item.unit})`}</div>
+      {
+        isCentralBonusModalOpen && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+              <div className="p-6 border-b bg-gray-50 flex justify-between items-center"><h2 className="text-xl font-bold flex items-center gap-2">📄 中央都市更新獎勵明細</h2><button onClick={() => setIsCentralBonusModalOpen(false)}><X size={24} /></button></div>
+              <div className="p-6 overflow-y-auto space-y-4">
+                {Object.entries(CENTRAL_BONUS_ITEMS).map(([key, item]) => (
+                  <div key={key} className="p-4 border rounded-lg bg-gray-50 flex justify-between items-center">
+                    <div className="flex-1">
+                      <div className="font-bold text-gray-800">{item.title}</div>
+                      <div className="text-xs text-gray-500">{item.note} {item.unit && `(${item.unit})`}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {item.type === 'radio' ? (
+                        <div className="flex flex-wrap gap-2 justify-end">
+                          {item.options.map(opt => (
+                            <label key={opt.label} className={`cursor-pointer px-3 py-1 rounded border text-sm transition-colors ${centralBonusDetails[key] === opt.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>
+                              <input type="radio" name={key} value={opt.value} checked={centralBonusDetails[key] === opt.value} onChange={() => handleCentralDetailChange(key, opt.value)} className="hidden" />
+                              {opt.label}
+                            </label>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="w-32"><input type="number" value={centralBonusDetails[key]} onChange={(e) => handleCentralDetailChange(key, e.target.value)} className="w-full border rounded px-2 py-1 text-right" placeholder="0" /></div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {item.type === 'radio' ? (
-                      <div className="flex flex-wrap gap-2 justify-end">
-                        {item.options.map(opt => (
-                          <label key={opt.label} className={`cursor-pointer px-3 py-1 rounded border text-sm transition-colors ${centralBonusDetails[key] === opt.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>
-                            <input type="radio" name={key} value={opt.value} checked={centralBonusDetails[key] === opt.value} onChange={() => handleCentralDetailChange(key, opt.value)} className="hidden" />
-                            {opt.label}
-                          </label>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="w-32"><input type="number" value={centralBonusDetails[key]} onChange={(e) => handleCentralDetailChange(key, e.target.value)} className="w-full border rounded px-2 py-1 text-right" placeholder="0" /></div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="p-6 border-t bg-gray-50 flex justify-between items-center">
-              <div className="text-gray-600">總計: {calculateCentralTotal()}% {parseFloat(calculateCentralTotal()) > 30 && <span className="text-red-500 font-bold ml-2">(已達上限 30%)</span>}</div>
-              <div className="flex gap-3"><button onClick={() => setIsCentralBonusModalOpen(false)} className="px-4 py-2 text-gray-700">取消</button><button onClick={applyCentralBonus} className="px-6 py-2 bg-blue-600 text-white rounded-lg">確認並帶入</button></div>
+                ))}
+              </div>
+              <div className="p-6 border-t bg-gray-50 flex justify-between items-center">
+                <div className="text-gray-600">總計: {calculateCentralTotal()}% {parseFloat(calculateCentralTotal()) > 30 && <span className="text-red-500 font-bold ml-2">(已達上限 30%)</span>}</div>
+                <div className="flex gap-3"><button onClick={() => setIsCentralBonusModalOpen(false)} className="px-4 py-2 text-gray-700">取消</button><button onClick={applyCentralBonus} className="px-6 py-2 bg-blue-600 text-white rounded-lg">確認並帶入</button></div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Local Bonus Modal */}
-      {isLocalBonusModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-            <div className="p-6 border-b bg-gray-50 flex justify-between items-center"><h2 className="text-xl font-bold flex items-center gap-2">🏙️ 台北市地方都更獎勵 (Delta B)</h2><button onClick={() => setIsLocalBonusModalOpen(false)}><X size={24} /></button></div>
-            <div className="p-6 overflow-y-auto space-y-6">
-              {['一、都市環境之貢獻', '二、新技術之應用', '三、都市更新事業實施', '四、特殊情形'].map(group => (
-                <div key={group} className="space-y-3">
-                  <h3 className="font-bold text-gray-700 border-b pb-1">{group}</h3>
-                  {Object.entries(LOCAL_BONUS_ITEMS).filter(([_, item]) => item.group === group).map(([key, item]) => (
-                    <div key={key} className="p-3 border rounded-lg bg-gray-50 flex justify-between items-center">
-                      <div className="flex-1"><div className="font-bold text-gray-800">{item.title}</div><div className="text-xs text-gray-500">{item.note}</div></div>
-                      <div className="flex items-center gap-2">
-                        {item.type === 'radio' ? (
-                          <div className="flex flex-wrap gap-2 justify-end">{item.options.map(opt => (<label key={opt.label} className={`cursor-pointer px-2 py-1 rounded border text-xs ${localBonusDetails[key] === opt.value ? 'bg-green-600 text-white' : 'bg-white'}`}><input type="radio" name={key} checked={localBonusDetails[key] === opt.value} onChange={() => handleLocalDetailChange(key, opt.value)} className="hidden" />{opt.label}</label>))}</div>
-                        ) : (<div className="w-24"><input type="number" value={localBonusDetails[key]} onChange={(e) => handleLocalDetailChange(key, e.target.value)} className="w-full border rounded px-2 py-1 text-right" /></div>)}
+      {
+        isLocalBonusModalOpen && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+              <div className="p-6 border-b bg-gray-50 flex justify-between items-center"><h2 className="text-xl font-bold flex items-center gap-2">🏙️ 台北市地方都更獎勵 (Delta B)</h2><button onClick={() => setIsLocalBonusModalOpen(false)}><X size={24} /></button></div>
+              <div className="p-6 overflow-y-auto space-y-6">
+                {['一、都市環境之貢獻', '二、新技術之應用', '三、都市更新事業實施', '四、特殊情形'].map(group => (
+                  <div key={group} className="space-y-3">
+                    <h3 className="font-bold text-gray-700 border-b pb-1">{group}</h3>
+                    {Object.entries(LOCAL_BONUS_ITEMS).filter(([_, item]) => item.group === group).map(([key, item]) => (
+                      <div key={key} className="p-3 border rounded-lg bg-gray-50 flex justify-between items-center">
+                        <div className="flex-1"><div className="font-bold text-gray-800">{item.title}</div><div className="text-xs text-gray-500">{item.note}</div></div>
+                        <div className="flex items-center gap-2">
+                          {item.type === 'radio' ? (
+                            <div className="flex flex-wrap gap-2 justify-end">{item.options.map(opt => (<label key={opt.label} className={`cursor-pointer px-2 py-1 rounded border text-xs ${localBonusDetails[key] === opt.value ? 'bg-green-600 text-white' : 'bg-white'}`}><input type="radio" name={key} checked={localBonusDetails[key] === opt.value} onChange={() => handleLocalDetailChange(key, opt.value)} className="hidden" />{opt.label}</label>))}</div>
+                          ) : (<div className="w-24"><input type="number" value={localBonusDetails[key]} onChange={(e) => handleLocalDetailChange(key, e.target.value)} className="w-full border rounded px-2 py-1 text-right" /></div>)}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-            <div className="p-6 border-t bg-gray-50 flex justify-between items-center">
-              <div className="text-gray-600">總計: {calculateLocalTotal()}% {parseFloat(calculateLocalTotal()) > 20 && <span className="text-red-500 font-bold ml-2">(已達上限 20%)</span>}</div>
-              <div className="flex gap-3"><button onClick={() => setIsLocalBonusModalOpen(false)} className="px-4 py-2 text-gray-700">取消</button><button onClick={applyLocalBonus} className="px-6 py-2 bg-green-600 text-white rounded-lg">確認並帶入</button></div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+              <div className="p-6 border-t bg-gray-50 flex justify-between items-center">
+                <div className="text-gray-600">總計: {calculateLocalTotal()}% {parseFloat(calculateLocalTotal()) > 20 && <span className="text-red-500 font-bold ml-2">(已達上限 20%)</span>}</div>
+                <div className="flex gap-3"><button onClick={() => setIsLocalBonusModalOpen(false)} className="px-4 py-2 text-gray-700">取消</button><button onClick={applyLocalBonus} className="px-6 py-2 bg-green-600 text-white rounded-lg">確認並帶入</button></div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Disaster Bonus Modal */}
-      {isDisasterBonusModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
-            <div className="p-6 border-b bg-gray-50 flex justify-between items-center"><h2 className="text-xl font-bold text-red-700 flex items-center gap-2">🔥 防災型都更獎勵檢核表</h2><button onClick={() => setIsDisasterBonusModalOpen(false)}><X size={24} /></button></div>
-            <div className="p-6 space-y-4">
-              {DISASTER_BONUS_CRITERIA.map(c => (
-                <label key={c.key} className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                  <div className={`mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center ${disasterBonusChecks[c.key] ? 'bg-red-500 border-red-500 text-white' : 'border-gray-300'}`}>{disasterBonusChecks[c.key] && <CheckCircle size={14} />}</div>
-                  <input type="checkbox" className="hidden" checked={disasterBonusChecks[c.key]} onChange={(e) => handleDisasterCheckChange(c.key, e.target.checked)} />
-                  <div><div className="font-bold text-gray-800">{c.label}</div><div className="text-xs text-gray-500">{c.desc}</div></div>
-                </label>
-              ))}
-              <div className="mt-4 p-4 bg-red-50 rounded-lg text-center border border-red-100">
-                <div className="text-gray-600 text-sm mb-1">符合條件狀態</div>
-                <div className={`text-2xl font-bold ${calculateDisasterTotal() > 0 ? 'text-red-600' : 'text-gray-400'}`}>{calculateDisasterTotal() > 0 ? "符合獎勵資格 (30%)" : "未符合 (0%)"}</div>
+      {
+        isDisasterBonusModalOpen && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+              <div className="p-6 border-b bg-gray-50 flex justify-between items-center"><h2 className="text-xl font-bold text-red-700 flex items-center gap-2">🔥 防災型都更獎勵檢核表</h2><button onClick={() => setIsDisasterBonusModalOpen(false)}><X size={24} /></button></div>
+              <div className="p-6 space-y-4">
+                {DISASTER_BONUS_CRITERIA.map(c => (
+                  <label key={c.key} className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                    <div className={`mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center ${disasterBonusChecks[c.key] ? 'bg-red-500 border-red-500 text-white' : 'border-gray-300'}`}>{disasterBonusChecks[c.key] && <CheckCircle size={14} />}</div>
+                    <input type="checkbox" className="hidden" checked={disasterBonusChecks[c.key]} onChange={(e) => handleDisasterCheckChange(c.key, e.target.checked)} />
+                    <div><div className="font-bold text-gray-800">{c.label}</div><div className="text-xs text-gray-500">{c.desc}</div></div>
+                  </label>
+                ))}
+                <div className="mt-4 p-4 bg-red-50 rounded-lg text-center border border-red-100">
+                  <div className="text-gray-600 text-sm mb-1">符合條件狀態</div>
+                  <div className={`text-2xl font-bold ${calculateDisasterTotal() > 0 ? 'text-red-600' : 'text-gray-400'}`}>{calculateDisasterTotal() > 0 ? "符合獎勵資格 (30%)" : "未符合 (0%)"}</div>
+                </div>
               </div>
+              <div className="p-6 border-t bg-gray-50 flex justify-end gap-3"><button onClick={() => setIsDisasterBonusModalOpen(false)} className="px-4 py-2 text-gray-700">取消</button><button onClick={applyDisasterBonus} className="px-6 py-2 bg-red-600 text-white rounded-lg">確認並帶入</button></div>
             </div>
-            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3"><button onClick={() => setIsDisasterBonusModalOpen(false)} className="px-4 py-2 text-gray-700">取消</button><button onClick={applyDisasterBonus} className="px-6 py-2 bg-red-600 text-white rounded-lg">確認並帶入</button></div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Chloride Bonus Modal */}
-      {isChlorideModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
-            <div className="p-6 border-b bg-gray-50 flex justify-between items-center"><h2 className="text-xl font-bold text-blue-800 flex items-center gap-2">🧪 高氯離子建物獎勵試算 (海砂屋)</h2><button onClick={() => setIsChlorideModalOpen(false)}><X size={24} /></button></div>
-            <div className="p-6 space-y-4">
-              <div><label className="block text-sm font-bold text-gray-700 mb-2">計算方式</label><div className="flex gap-4"><label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="chlorideMethod" checked={chlorideInputs.method === 'original_far'} onChange={() => handleChlorideInputChange('method', 'original_far')} />依原容積率計算 (A1 + B1)</label><label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="chlorideMethod" checked={chlorideInputs.method === 'original_total'} onChange={() => handleChlorideInputChange('method', 'original_total')} />依原總樓地板計算 (A2 + B2)</label></div></div>
-              <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm text-gray-600 mb-1">{chlorideInputs.method === 'original_far' ? "A1 地面以上 (申請)" : "A2 地面以上 (不含獎勵)"}</label><input type="number" min="0" value={chlorideInputs.A} onChange={(e) => handleChlorideInputChange('A', e.target.value)} className="w-full border p-2 rounded" /></div><div><label className="block text-sm text-gray-600 mb-1">{chlorideInputs.method === 'original_far' ? "B1 地下層 (申請)" : "B2 地下層 (不含防空)"}</label><input type="number" min="0" value={chlorideInputs.B} onChange={(e) => handleChlorideInputChange('B', e.target.value)} className="w-full border p-2 rounded" /></div></div>
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200"><div className="flex justify-between mb-2"><span className="text-gray-600 text-sm">原建築計算基準面積 (Sum)</span><span className="font-bold">{(chlorideInputs.A + chlorideInputs.B).toFixed(2)} m²</span></div><div className="flex justify-between mb-2"><span className="text-blue-700 font-bold">可爭取獎勵面積 (30%)</span><span className="font-bold text-blue-700 text-lg">{calculateChlorideRewardArea().toFixed(2)} m²</span></div><div className="border-t border-blue-200 pt-2 flex justify-between items-center"><span className="text-gray-600 text-sm">相當於法定容積百分比</span><span className="font-bold text-red-600 text-xl">{calculateLegalCapacity() > 0 ? ((calculateChlorideRewardArea() / calculateLegalCapacity()) * 100).toFixed(2) : '0.00'} %</span></div></div>
+      {
+        isChlorideModalOpen && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+              <div className="p-6 border-b bg-gray-50 flex justify-between items-center"><h2 className="text-xl font-bold text-blue-800 flex items-center gap-2">🧪 高氯離子建物獎勵試算 (海砂屋)</h2><button onClick={() => setIsChlorideModalOpen(false)}><X size={24} /></button></div>
+              <div className="p-6 space-y-4">
+                <div><label className="block text-sm font-bold text-gray-700 mb-2">計算方式</label><div className="flex gap-4"><label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="chlorideMethod" checked={chlorideInputs.method === 'original_far'} onChange={() => handleChlorideInputChange('method', 'original_far')} />依原容積率計算 (A1 + B1)</label><label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="chlorideMethod" checked={chlorideInputs.method === 'original_total'} onChange={() => handleChlorideInputChange('method', 'original_total')} />依原總樓地板計算 (A2 + B2)</label></div></div>
+                <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm text-gray-600 mb-1">{chlorideInputs.method === 'original_far' ? "A1 地面以上 (申請)" : "A2 地面以上 (不含獎勵)"}</label><input type="number" min="0" value={chlorideInputs.A} onChange={(e) => handleChlorideInputChange('A', e.target.value)} className="w-full border p-2 rounded" /></div><div><label className="block text-sm text-gray-600 mb-1">{chlorideInputs.method === 'original_far' ? "B1 地下層 (申請)" : "B2 地下層 (不含防空)"}</label><input type="number" min="0" value={chlorideInputs.B} onChange={(e) => handleChlorideInputChange('B', e.target.value)} className="w-full border p-2 rounded" /></div></div>
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200"><div className="flex justify-between mb-2"><span className="text-gray-600 text-sm">原建築計算基準面積 (Sum)</span><span className="font-bold">{(chlorideInputs.A + chlorideInputs.B).toFixed(2)} m²</span></div><div className="flex justify-between mb-2"><span className="text-blue-700 font-bold">可爭取獎勵面積 (30%)</span><span className="font-bold text-blue-700 text-lg">{calculateChlorideRewardArea().toFixed(2)} m²</span></div><div className="border-t border-blue-200 pt-2 flex justify-between items-center"><span className="text-gray-600 text-sm">相當於法定容積百分比</span><span className="font-bold text-red-600 text-xl">{calculateLegalCapacity() > 0 ? ((calculateChlorideRewardArea() / calculateLegalCapacity()) * 100).toFixed(2) : '0.00'} %</span></div></div>
+              </div>
+              <div className="p-6 border-t bg-gray-50 flex justify-end gap-3"><button onClick={() => setIsChlorideModalOpen(false)} className="px-4 py-2 text-gray-700">取消</button><button onClick={applyChlorideBonus} className="px-6 py-2 bg-blue-600 text-white rounded-lg">帶入結果</button></div>
             </div>
-            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3"><button onClick={() => setIsChlorideModalOpen(false)} className="px-4 py-2 text-gray-700">取消</button><button onClick={applyChlorideBonus} className="px-6 py-2 bg-blue-600 text-white rounded-lg">帶入結果</button></div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* TOD Bonus Modal */}
-      {isTODModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b bg-gray-50 flex justify-between items-center"><h2 className="text-xl font-bold text-gray-800 flex items-center gap-2"><span className="bg-purple-100 p-2 rounded-lg">🚇</span>台北市 TOD 專案評估 (獎勵+增額)</h2><button onClick={() => setIsTODModalOpen(false)}><X size={24} /></button></div>
-            <div className="p-6 space-y-6 overflow-y-auto">
-              <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 space-y-3"><h3 className="font-bold text-purple-900">1. 基地條件與上限設定</h3><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">場站等級與區位</label><select className="w-full border-gray-300 rounded-lg px-3 py-2" value={todInputs.station_grade} onChange={(e) => handleTODInputChange('station_grade', e.target.value)}><option value="1_core">一級場站 - 核心區 (Cap 30%)</option><option value="1_general">一級場站 - 一般區 (Cap 15%)</option><option value="2_core">二級場站 - 核心區 (Cap 20%)</option><option value="2_general">二級場站 - 一般區 (Cap 10%)</option></select></div><div className="flex items-center gap-2 mt-6"><input type="checkbox" checked={todInputs.road_width_check} onChange={(e) => handleTODInputChange('road_width_check', e.target.checked)} className="w-5 h-5 text-purple-600" /><span className="font-bold text-gray-700">臨路寬度 ≥ 8m (必要條件)</span></div></div></div>
-              <div className="space-y-4"><h3 className="font-bold text-gray-800 border-b pb-2">2. TOD 容積獎勵項目 (Rewards)</h3><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm text-gray-600">D1 捷運設施 (%)</label><input type="number" value={todInputs.d1_metro_facilities} onChange={(e) => handleTODInputChange('d1_metro_facilities', e.target.value)} className="w-full border p-2 rounded" /></div><div><label className="block text-sm text-gray-600">D2 自行車 (%)</label><input type="number" value={todInputs.d2_bike_parking} onChange={(e) => handleTODInputChange('d2_bike_parking', e.target.value)} className="w-full border p-2 rounded" /></div><div><label className="block text-sm text-gray-600">D4 公益設施 (%)</label><input type="number" value={todInputs.d4_public_facility} onChange={(e) => handleTODInputChange('d4_public_facility', e.target.value)} className="w-full border p-2 rounded" /></div><div><label className="block text-sm text-gray-600">D5 代金 (%)</label><input type="number" value={todInputs.d5_payment} onChange={(e) => handleTODInputChange('d5_payment', e.target.value)} className="w-full border p-2 rounded" /></div></div><div className="bg-gray-50 p-3 rounded"><label className="block text-sm font-bold text-gray-700 mb-2">D3 友善人行空間</label><div className="flex flex-wrap gap-4">{[0, 1, 2, 3, 4, 6].map(val => (<label key={val} className="flex items-center gap-1 cursor-pointer"><input type="radio" name="d3_pedestrian" value={val} checked={todInputs.d3_pedestrian === val} onChange={() => handleTODInputChange('d3_pedestrian', val)} /><span>{val}%</span></label>))}</div><p className="text-xs text-gray-500 mt-1">標準級: 1~3% / 進階級: 2~6%</p></div><div className="text-right"><span className="text-gray-600 mr-2">試算總和: {calculateTODTotalReward()}%</span><span className="font-bold text-purple-700">有效獎勵 (Cap): {Math.min(calculateTODTotalReward(), TOD_CAPS[todInputs.station_grade]).toFixed(2)}%</span></div></div>
-              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200"><h3 className="font-bold text-yellow-900 mb-2">3. TOD 增額容積 (Increment)</h3><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm text-gray-600">增額申請 (%)</label><input type="number" value={todInputs.increment_base} onChange={(e) => handleTODInputChange('increment_base', e.target.value)} className="w-full border p-2 rounded" /></div><div><label className="block text-sm text-gray-600">規模/路寬加給 (%)</label><input type="number" value={todInputs.increment_bonus} onChange={(e) => handleTODInputChange('increment_bonus', e.target.value)} className="w-full border p-2 rounded" /></div></div><div className="text-right mt-2 font-bold text-yellow-800">總增額: {calculateTODIncrementTotal().toFixed(2)}%</div></div>
+      {
+        isTODModalOpen && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="p-6 border-b bg-gray-50 flex justify-between items-center"><h2 className="text-xl font-bold text-gray-800 flex items-center gap-2"><span className="bg-purple-100 p-2 rounded-lg">🚇</span>台北市 TOD 專案評估 (獎勵+增額)</h2><button onClick={() => setIsTODModalOpen(false)}><X size={24} /></button></div>
+              <div className="p-6 space-y-6 overflow-y-auto">
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 space-y-3"><h3 className="font-bold text-purple-900">1. 基地條件與上限設定</h3><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">場站等級與區位</label><select className="w-full border-gray-300 rounded-lg px-3 py-2" value={todInputs.station_grade} onChange={(e) => handleTODInputChange('station_grade', e.target.value)}><option value="1_core">一級場站 - 核心區 (Cap 30%)</option><option value="1_general">一級場站 - 一般區 (Cap 15%)</option><option value="2_core">二級場站 - 核心區 (Cap 20%)</option><option value="2_general">二級場站 - 一般區 (Cap 10%)</option></select></div><div className="flex items-center gap-2 mt-6"><input type="checkbox" checked={todInputs.road_width_check} onChange={(e) => handleTODInputChange('road_width_check', e.target.checked)} className="w-5 h-5 text-purple-600" /><span className="font-bold text-gray-700">臨路寬度 ≥ 8m (必要條件)</span></div></div></div>
+                <div className="space-y-4"><h3 className="font-bold text-gray-800 border-b pb-2">2. TOD 容積獎勵項目 (Rewards)</h3><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm text-gray-600">D1 捷運設施 (%)</label><input type="number" value={todInputs.d1_metro_facilities} onChange={(e) => handleTODInputChange('d1_metro_facilities', e.target.value)} className="w-full border p-2 rounded" /></div><div><label className="block text-sm text-gray-600">D2 自行車 (%)</label><input type="number" value={todInputs.d2_bike_parking} onChange={(e) => handleTODInputChange('d2_bike_parking', e.target.value)} className="w-full border p-2 rounded" /></div><div><label className="block text-sm text-gray-600">D4 公益設施 (%)</label><input type="number" value={todInputs.d4_public_facility} onChange={(e) => handleTODInputChange('d4_public_facility', e.target.value)} className="w-full border p-2 rounded" /></div><div><label className="block text-sm text-gray-600">D5 代金 (%)</label><input type="number" value={todInputs.d5_payment} onChange={(e) => handleTODInputChange('d5_payment', e.target.value)} className="w-full border p-2 rounded" /></div></div><div className="bg-gray-50 p-3 rounded"><label className="block text-sm font-bold text-gray-700 mb-2">D3 友善人行空間</label><div className="flex flex-wrap gap-4">{[0, 1, 2, 3, 4, 6].map(val => (<label key={val} className="flex items-center gap-1 cursor-pointer"><input type="radio" name="d3_pedestrian" value={val} checked={todInputs.d3_pedestrian === val} onChange={() => handleTODInputChange('d3_pedestrian', val)} /><span>{val}%</span></label>))}</div><p className="text-xs text-gray-500 mt-1">標準級: 1~3% / 進階級: 2~6%</p></div><div className="text-right"><span className="text-gray-600 mr-2">試算總和: {calculateTODTotalReward()}%</span><span className="font-bold text-purple-700">有效獎勵 (Cap): {Math.min(calculateTODTotalReward(), TOD_CAPS[todInputs.station_grade]).toFixed(2)}%</span></div></div>
+                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200"><h3 className="font-bold text-yellow-900 mb-2">3. TOD 增額容積 (Increment)</h3><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm text-gray-600">增額申請 (%)</label><input type="number" value={todInputs.increment_base} onChange={(e) => handleTODInputChange('increment_base', e.target.value)} className="w-full border p-2 rounded" /></div><div><label className="block text-sm text-gray-600">規模/路寬加給 (%)</label><input type="number" value={todInputs.increment_bonus} onChange={(e) => handleTODInputChange('increment_bonus', e.target.value)} className="w-full border p-2 rounded" /></div></div><div className="text-right mt-2 font-bold text-yellow-800">總增額: {calculateTODIncrementTotal().toFixed(2)}%</div></div>
+              </div>
+              <div className="p-6 border-t bg-gray-50 flex justify-end gap-3"><button onClick={() => setIsTODModalOpen(false)} className="px-4 py-2 text-gray-700">取消</button><button onClick={applyTODBonus} className="px-6 py-2 bg-purple-600 text-white rounded-lg">帶入與儲存</button></div>
             </div>
-            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3"><button onClick={() => setIsTODModalOpen(false)} className="px-4 py-2 text-gray-700">取消</button><button onClick={applyTODBonus} className="px-6 py-2 bg-purple-600 text-white rounded-lg">帶入與儲存</button></div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Soil Mgmt Modal */}
-      {isSoilMgmtModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
-            <div className="p-6 border-b bg-gray-50 flex justify-between items-center"><h2 className="text-xl font-bold text-gray-800 flex items-center gap-2"><span className="bg-orange-100 p-2 rounded-lg">🏗️</span>土管 80-2 檢核與計算</h2><button onClick={() => setIsSoilMgmtModalOpen(false)}><X size={24} /></button></div>
-            <div className="p-6 space-y-6">
-              <div className={`p-4 rounded-lg border flex justify-between items-center ${isSoilMgmtEligible() ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                <div><div className="text-sm text-gray-600">基地規模檢核 (門檻 2,000 m²)</div><div className="font-bold text-lg">{calculateTotalSiteArea().toLocaleString()} m²</div></div>
-                <div className={`px-3 py-1 rounded text-sm font-bold ${isSoilMgmtEligible() ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>{isSoilMgmtEligible() ? '符合資格' : '未達門檻'}</div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">預計申請獎勵額度 (%)</label>
-                <input type="number" value={soilMgmtInputs.desired_bonus} onChange={(e) => handleSoilMgmtInputChange('desired_bonus', e.target.value)} className="w-full border p-2 rounded text-lg" placeholder="e.g. 20" />
-              </div>
-
-              <div className="border-t pt-4">
-                <h3 className="font-bold text-gray-700 mb-3">回饋金試算 (淨利益之 50%)</h3>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div><label className="block text-xs text-gray-500">銷售營收 (萬元/坪)</label><input type="number" value={soilMgmtInputs.unit_sales_price} onChange={(e) => handleSoilMgmtInputChange('unit_sales_price', e.target.value)} className="w-full border p-2 rounded" /></div>
-                  <div><label className="block text-xs text-gray-500">營建成本 (萬元/坪)</label><input type="number" value={soilMgmtInputs.unit_cost_construct} onChange={(e) => handleSoilMgmtInputChange('unit_cost_construct', e.target.value)} className="w-full border p-2 rounded" /></div>
-                  <div><label className="block text-xs text-gray-500">管銷費用 (萬元/坪)</label><input type="number" value={soilMgmtInputs.unit_cost_mgmt} onChange={(e) => handleSoilMgmtInputChange('unit_cost_mgmt', e.target.value)} className="w-full border p-2 rounded" /></div>
+      {
+        isSoilMgmtModalOpen && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+              <div className="p-6 border-b bg-gray-50 flex justify-between items-center"><h2 className="text-xl font-bold text-gray-800 flex items-center gap-2"><span className="bg-orange-100 p-2 rounded-lg">🏗️</span>土管 80-2 檢核與計算</h2><button onClick={() => setIsSoilMgmtModalOpen(false)}><X size={24} /></button></div>
+              <div className="p-6 space-y-6">
+                <div className={`p-4 rounded-lg border flex justify-between items-center ${isSoilMgmtEligible() ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                  <div><div className="text-sm text-gray-600">基地規模檢核 (門檻 2,000 m²)</div><div className="font-bold text-lg">{calculateTotalSiteArea().toLocaleString()} m²</div></div>
+                  <div className={`px-3 py-1 rounded text-sm font-bold ${isSoilMgmtEligible() ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>{isSoilMgmtEligible() ? '符合資格' : '未達門檻'}</div>
                 </div>
-                <div className="bg-gray-50 p-4 rounded text-right space-y-1">
-                  <div className="text-sm text-gray-600">增加容積樓地板: {calculateResultingBonusAreaPing().toFixed(2)} 坪</div>
-                  <div className="text-sm text-gray-600">預估淨利益: {calculateSoilMgmtNetProfit().toLocaleString()} 萬元</div>
-                  <div className="text-xl font-bold text-orange-600 border-t pt-2 mt-2">應繳回饋金: {(calculateSoilMgmtNetProfit() * 0.5).toLocaleString()} 萬元</div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">預計申請獎勵額度 (%)</label>
+                  <input type="number" value={soilMgmtInputs.desired_bonus} onChange={(e) => handleSoilMgmtInputChange('desired_bonus', e.target.value)} className="w-full border p-2 rounded text-lg" placeholder="e.g. 20" />
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="font-bold text-gray-700 mb-3">回饋金試算 (淨利益之 50%)</h3>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div><label className="block text-xs text-gray-500">銷售營收 (萬元/坪)</label><input type="number" value={soilMgmtInputs.unit_sales_price} onChange={(e) => handleSoilMgmtInputChange('unit_sales_price', e.target.value)} className="w-full border p-2 rounded" /></div>
+                    <div><label className="block text-xs text-gray-500">營建成本 (萬元/坪)</label><input type="number" value={soilMgmtInputs.unit_cost_construct} onChange={(e) => handleSoilMgmtInputChange('unit_cost_construct', e.target.value)} className="w-full border p-2 rounded" /></div>
+                    <div><label className="block text-xs text-gray-500">管銷費用 (萬元/坪)</label><input type="number" value={soilMgmtInputs.unit_cost_mgmt} onChange={(e) => handleSoilMgmtInputChange('unit_cost_mgmt', e.target.value)} className="w-full border p-2 rounded" /></div>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded text-right space-y-1">
+                    <div className="text-sm text-gray-600">增加容積樓地板: {calculateResultingBonusAreaPing().toFixed(2)} 坪</div>
+                    <div className="text-sm text-gray-600">預估淨利益: {calculateSoilMgmtNetProfit().toLocaleString()} 萬元</div>
+                    <div className="text-xl font-bold text-orange-600 border-t pt-2 mt-2">應繳回饋金: {(calculateSoilMgmtNetProfit() * 0.5).toLocaleString()} 萬元</div>
+                  </div>
                 </div>
               </div>
+              <div className="p-6 border-t bg-gray-50 flex justify-end gap-3"><button onClick={() => setIsSoilMgmtModalOpen(false)} className="px-4 py-2 text-gray-700">取消</button><button onClick={applySoilMgmtBonus} className="px-6 py-2 bg-orange-600 text-white rounded-lg">確認並帶入</button></div>
             </div>
-            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3"><button onClick={() => setIsSoilMgmtModalOpen(false)} className="px-4 py-2 text-gray-700">取消</button><button onClick={applySoilMgmtBonus} className="px-6 py-2 bg-orange-600 text-white rounded-lg">確認並帶入</button></div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-    </div>
+    </div >
   )
 }
 
