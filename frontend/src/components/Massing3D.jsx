@@ -66,14 +66,21 @@ function Basement({ width, depth, area, floors }) {
     );
 }
 
-const Massing3D = ({
-    floors = 15,
-    floor_height = 3.3,
-    footprint_area = 500,
-    basement_floors = 3,
-    basement_area = 500,
-    basement_floor_height = 3.3
-}) => {
+const safeVal = (val, def = 0, min = 0) => {
+    const num = parseFloat(val);
+    if (isNaN(num) || typeof num !== 'number') return def;
+    return num < min ? def : num;
+}
+
+const Massing3D = (props) => {
+    // Data Safety Checks
+    const floors = safeVal(props.floors, 1, 1);
+    const floor_height = safeVal(props.floor_height, 3.3, 2);
+    const footprint_area = safeVal(props.footprint_area, 100, 10);
+
+    const basement_floors = safeVal(props.basement_floors, 0, 0);
+    const basement_area = safeVal(props.basement_area, 100, 10);
+    const basement_floor_height = safeVal(props.basement_floor_height, 3.3, 2);
 
     const buildingWidth = useMemo(() => Math.sqrt(footprint_area), [footprint_area]);
     const buildingHeight = floors * floor_height;
@@ -86,7 +93,7 @@ const Massing3D = ({
     const camDist = Math.max(buildingHeight, basementDepth, buildingWidth) * 3.0;
 
     return (
-        <div className="w-full h-full min-h-[400px] bg-gradient-to-b from-gray-50 to-gray-200 rounded-lg overflow-hidden border border-gray-300 relative group">
+        <div className="w-full h-[500px] bg-gradient-to-b from-gray-50 to-gray-200 rounded-lg overflow-hidden border border-gray-300 relative group">
 
             {/* Overlay Info - Simplified now that 3D labels are detailed */}
             <div className="absolute top-4 left-4 z-10 bg-white/95 backdrop-blur shadow-md p-3 rounded-lg border border-gray-100 text-sm opacity-80 group-hover:opacity-100 transition-opacity">
