@@ -36,13 +36,49 @@ export default function LandMap({ onAreaChange }) {
 
     const calculateAndNotifyArea = (layer) => {
         const latlngs = layer.getLatLngs();
-        // Normalize: getLatLngs() returns [ [latlng, ...] ] for polygons
-        const polygonPoints = latlngs[0];
-        const area = L.GeometryUtil.geodesicArea(polygonPoints);
-        const areaStr = area.toLocaleString(undefined, { maximumFractionDigits: 1 });
+
+        // Normalize: getLatLngs() may return nested arrays (e.g., polygons with holes, multipolygons)
+        const normalizePolygons = (points) => {
+            if (!Array.isArray(points) || !points.length) return [];
+
+            // If this level already represents a ring (array of lat/lngs)
+            if (points[0] && points[0].lat !== undefined && points[0].lng !== undefined) {
+                return [[points]]; // single polygon, single ring
+            }
+
+            // If this level is a polygon with one or more rings
+            if (
+                Array.isArray(points[0]) &&
+                points[0][0] &&
+                points[0][0].lat !== undefined &&
+                points[0][0].lng !== undefined
+            ) {
+                return [points];
+            }
+
+            // Otherwise recurse deeper (e.g., multipolygon structure)
+            return points.flatMap(normalizePolygons);
+        }
+
+        const polygons = normalizePolygons(latlngs);
+        if (!polygons.length) {
+            if (onAreaChange) onAreaChange(0);
+            return;
+        }
+
+        const area = polygons.reduce((sum, polygon) => {
+            if (!Array.isArray(polygon)) return sum;
+            return polygon.reduce((polySum, ring, ringIdx) => {
+                if (!Array.isArray(ring) || !ring.length) return polySum;
+                const areaVal = Math.abs(L.GeometryUtil.geodesicArea(ring));
+                return ringIdx === 0 ? polySum + areaVal : polySum - areaVal; // subtract holes
+            }, sum);
+        }, 0);
+        const normalizedArea = Math.max(area, 0);
+        const areaStr = normalizedArea.toLocaleString(undefined, { maximumFractionDigits: 1 });
 
         layer.bindPopup(`面積約: ${areaStr} m²`).openPopup();
-        if (onAreaChange) onAreaChange(area);
+        if (onAreaChange) onAreaChange(normalizedArea);
     }
 
     return (
