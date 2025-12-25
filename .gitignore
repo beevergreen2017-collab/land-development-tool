@@ -1,20 +1,41 @@
-# Backend
+﻿# Python
 __pycache__/
-*.py[cod]
-*$py.class
+*.pyc
+*.pyo
+*.pyd
 .venv/
-env/
 venv/
-*.db
-sql_app.db
-land_development.db
+.env
+.env.*
 
-# Frontend
+# Node
 node_modules/
 dist/
-.env
-.DS_Store
+build/
+.vite/
+frontend/node_modules/
+frontend/dist/
 
-# IDE
-.vscode/
-.idea/
+# Local DB / runtime artifacts
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs & debug artifacts (keep checklists)
+*.log
+*_log.txt
+*_output*.txt
+lint_*.txt
+lint_*.json
+errors.txt
+validation_log.txt
+debug_*.py
+debug_*.js
+test_debug*.txt
+verify_*output*.txt
+frontend/**/debug_*.js
+frontend/**/debug_*.txt
+
+# OS
+.DS_Store
+Thumbs.db
