@@ -39,3 +39,20 @@ frontend/**/debug_*.txt
 # OS
 .DS_Store
 Thumbs.db
+
+# Local one-off scripts / dumps (do not commit)
+check_db_columns.py
+migrate_v2.py
+patch_*.py
+patch_full.py
+projects.json
+tree.txt
+test_backend.py
+test_backend_persistence.js
+frontend/fixture_error.txt
+frontend/verify_debug.txt
+
+# Local verification helpers (do not ship)
+frontend/src/verify_all.js
+frontend/src/verify_logic.js
+frontend/update_fixture.js
