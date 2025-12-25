@@ -7,10 +7,18 @@ class LandParcelBase(BaseModel):
     lot_number: str
     area_m2: float
     zoning_type: str
-    announced_value: float
+    announced_value: Optional[float] = None
     legal_coverage_rate: Optional[float] = 0.0
     legal_floor_area_rate: Optional[float] = 0.0
     district: Optional[str] = None
+    tenure: Optional[str] = "未確認"
+    is_verified: Optional[bool] = False
+
+    bcr_limit: Optional[float] = None
+    far_limit: Optional[float] = None
+    ownership_status: Optional[str] = "未確認"
+    integration_risk: Optional[str] = "unknown"
+    include_in_site: Optional[bool] = True
 
 class LandParcelCreate(LandParcelBase):
     pass
@@ -24,13 +32,21 @@ class LandParcelUpdate(BaseModel):
     legal_coverage_rate: Optional[float] = None
     legal_floor_area_rate: Optional[float] = None
     district: Optional[str] = None
+    tenure: Optional[str] = None
+    is_verified: Optional[bool] = None
+
+    bcr_limit: Optional[float] = None
+    far_limit: Optional[float] = None
+    ownership_status: Optional[str] = None
+    integration_risk: Optional[str] = None
+    include_in_site: Optional[bool] = None
 
 class LandParcel(LandParcelBase):
     id: int
     project_id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ProjectBase(BaseModel):
     name: str
@@ -42,6 +58,8 @@ class ProjectCreate(ProjectBase):
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
+    bcr: Optional[float] = None
+    far: Optional[float] = None
     bonus_central: Optional[float] = None
     bonus_local: Optional[float] = None
     bonus_other: Optional[float] = None
@@ -52,6 +70,17 @@ class ProjectUpdate(BaseModel):
     bonus_tod_increment: Optional[float] = None
     bonus_public_exemption: Optional[float] = None
     bonus_cap: Optional[float] = None
+
+    # Bonus Details
+    central_bonus_details: Optional[dict] = None
+    local_bonus_details: Optional[dict] = None
+    disaster_bonus_details: Optional[dict] = None
+    chloride_bonus_details: Optional[dict] = None
+    tod_reward_bonus_details: Optional[dict] = None
+    tod_increment_bonus_details: Optional[dict] = None
+
+    site_config: Optional[dict] = None
+
     massing_design_coverage: Optional[float] = None
     massing_exemption_coef: Optional[float] = None
     massing_public_ratio: Optional[float] = None
@@ -73,6 +102,8 @@ class Project(ProjectBase):
     id: int
     total_area_m2: float
     total_area_ping: float  # Calculated field
+    bcr: float
+    far: float
     
     bonus_central: float
     bonus_local: float
@@ -84,6 +115,17 @@ class Project(ProjectBase):
     bonus_tod_increment: float
     bonus_public_exemption: float
     bonus_cap: float
+
+    # Bonus Details
+    central_bonus_details: Optional[dict] = {}
+    local_bonus_details: Optional[dict] = {}
+    disaster_bonus_details: Optional[dict] = {}
+    chloride_bonus_details: Optional[dict] = {}
+    tod_reward_bonus_details: Optional[dict] = {}
+    tod_increment_bonus_details: Optional[dict] = {}
+    
+    site_config: Optional[dict] = {}
+
     massing_design_coverage: float
     massing_exemption_coef: float
     massing_public_ratio: float
@@ -105,4 +147,4 @@ class Project(ProjectBase):
     land_parcels: List[LandParcel] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True

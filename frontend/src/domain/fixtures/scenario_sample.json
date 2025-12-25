@@ -1,0 +1,90 @@
+{
+    "project": {
+        "id": "scenario-test-1",
+        "name": "Regression Test Project",
+        "land_parcels": [
+            {
+                "id": "p1",
+                "district": "中正區",
+                "section_name": "TestSection",
+                "lot_number": "100-1",
+                "area_m2": 1000,
+                "zoning_type": "住三",
+                "legal_coverage_rate": 45,
+                "legal_floor_area_rate": 225,
+                "announced_value": 0,
+                "is_road_land": false
+            }
+        ]
+    },
+    "bonus": {
+        "bonus_central": 0,
+        "bonus_local": 0,
+        "bonus_other": 30,
+        "bonus_chloride": 0,
+        "bonus_tod_reward": 0,
+        "bonus_tod_increment": 0,
+        "bonus_soil_mgmt": 0,
+        "bonus_public_exemption": 0,
+        "bonus_cap": 50,
+        "centralBonusDetails": {
+            "enabled": true,
+            "checklist": {
+                "green_building": 4,
+                "smart_building": 2
+            }
+        },
+        "localBonusDetails": {
+            "enabled": true,
+            "checklist": {
+                "landscape": 5
+            }
+        },
+        "disasterBonusDetails": {
+            "enabled": true,
+            "checklist": {
+                "urbanRenewalMode": true,
+                "siteAreaM2": 1500,
+                "legalBuildingProof": "legalProof",
+                "seismicPath": "ID_LT_035",
+                "idValue": 0.30,
+                "exclusivityMode": "special",
+                "delta_b1": 15,
+                "delta_b2": 15,
+                "tempRate": 30
+            }
+        },
+        "chlorideBonusDetails": {
+            "enabled": true,
+            "checklist": {}
+        },
+        "todRewardBonusDetails": {
+            "enabled": true,
+            "checklist": {}
+        },
+        "todIncrementBonusDetails": {
+            "enabled": true,
+            "checklist": {}
+        }
+    },
+    "massing": {
+        "design_coverage": 45,
+        "exemption_coef": 1.15,
+        "public_ratio": 33,
+        "me_rate": 15,
+        "stair_rate": 10,
+        "balcony_rate": 10,
+        "residential_rate": 70,
+        "commercial_rate": 30,
+        "agency_rate": 0
+    },
+    "basement": {
+        "legal_parking": 10,
+        "bonus_parking": 5,
+        "excavation_rate": 80,
+        "parking_space_area": 40,
+        "floor_height": 3.2,
+        "legal_motorcycle": 10,
+        "motorcycle_unit_area": 4
+    }
+}

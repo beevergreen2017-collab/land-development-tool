@@ -30,7 +30,7 @@ export default function LandMap({ onAreaChange }) {
         });
     }
 
-    const handleDeleted = (e) => {
+    const handleDeleted = () => {
         if (onAreaChange) onAreaChange(0);
     }
 

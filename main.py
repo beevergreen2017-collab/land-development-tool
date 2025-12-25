@@ -1,4 +1,8 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
+import traceback
+import sys
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
@@ -10,9 +14,43 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# Auto-patch DB on startup to ensure schema consistency
+from patch_db import patch_db
+
+@app.on_event("startup")
+def on_startup():
+    patch_db()
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
+    print("CAUGHT SQLALCHEMY ERROR:", file=sys.stderr)
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error_type": exc.__class__.__name__,
+            "message": str(exc),
+            "hint": "Check database connection or query syntax."
+        },
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    print(f"CAUGHT UNHANDLED EXCEPTION ({exc.__class__.__name__}):", file=sys.stderr)
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error_type": exc.__class__.__name__,
+            "message": str(exc),
+            "hint": "Internal Server Error. Check backend logs for traceback."
+        },
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For development, allow all. In production, specify frontend URL.
+    # Fixed CORS origins for development
+    allow_origins=["http://localhost:5173", "http://localhost:5174"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,12 +74,29 @@ def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)
     db_project.total_area_ping = 0.0
     return db_project
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 @app.get("/projects/", response_model=List[schemas.Project])
 def read_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    projects = db.query(models.Project).offset(skip).limit(limit).all()
-    for p in projects:
-        p.total_area_ping = p.total_area_m2 * 0.3025
-    return projects
+    try:
+        projects = db.query(models.Project).offset(skip).limit(limit).all()
+        for p in projects:
+            # Safe calculation handling None values
+            p.total_area_ping = (p.total_area_m2 or 0.0) * 0.3025
+        return projects
+    except Exception as e:
+        print(f"Error in read_projects: {e}", file=sys.stderr)
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error_type": e.__class__.__name__,
+                "message": str(e),
+                "hint": "Database or calculation error in /projects/"
+            }
+        )
 
 @app.get("/projects/{project_id}", response_model=schemas.Project)
 def read_project(project_id: int, db: Session = Depends(get_db)):

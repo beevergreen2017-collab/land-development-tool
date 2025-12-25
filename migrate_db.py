@@ -34,6 +34,14 @@ def migrate():
             "bonus_cap": "FLOAT DEFAULT 100.0",
             "bonus_tod": "FLOAT DEFAULT 0.0",
 
+            # Bonus Details (JSON stored as TEXT)
+            "central_bonus_details": "TEXT DEFAULT '{}'",
+            "local_bonus_details": "TEXT DEFAULT '{}'",
+            "disaster_bonus_details": "TEXT DEFAULT '{}'",
+            "chloride_bonus_details": "TEXT DEFAULT '{}'",
+            "tod_reward_bonus_details": "TEXT DEFAULT '{}'",
+            "tod_increment_bonus_details": "TEXT DEFAULT '{}'",
+
             # Massing Fields
             "massing_design_coverage": "FLOAT DEFAULT 45.0",
             "massing_exemption_coef": "FLOAT DEFAULT 1.15",

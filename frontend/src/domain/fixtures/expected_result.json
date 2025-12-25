@@ -1,0 +1,132 @@
+{
+  "baseVolume": 2250,
+  "siteArea": 1000,
+  "bonus": {
+    "applicationTotal": 0,
+    "actualBonus": 0,
+    "totalAllowedRate": 100,
+    "items": [
+      {
+        "key": "bonus_central",
+        "label": "中央都更獎勵",
+        "ratio": 0,
+        "area": 0
+      },
+      {
+        "key": "bonus_local",
+        "label": "地方都更獎勵",
+        "ratio": 0,
+        "area": 0
+      },
+      {
+        "key": "bonus_other",
+        "label": "防災型都更獎勵",
+        "ratio": 0,
+        "area": 0,
+        "note": "包含高額獎勵/容移"
+      },
+      {
+        "key": "bonus_chloride",
+        "label": "高額獎勵 / 海砂屋",
+        "ratio": 0,
+        "area": 0
+      },
+      {
+        "key": "bonus_tod_reward",
+        "label": "TOD 容積獎勵",
+        "ratio": 0,
+        "area": 0
+      },
+      {
+        "key": "bonus_tod_increment",
+        "label": "TOD 增額容積 (土管80-2)",
+        "ratio": 0,
+        "area": 0
+      },
+      {
+        "key": "bonus_soil_mgmt",
+        "label": "廢土清理/其他",
+        "ratio": 0,
+        "area": 0
+      }
+    ],
+    "cap": 100,
+    "publicExemption": 0
+  },
+  "massing": {
+    "allowedVolumeArea": 2250,
+    "massingMEArea": 337.5,
+    "massingStairArea": 258.75,
+    "massingBalconyArea": 129.375,
+    "massingGFA_NoBalcony": 2846.25,
+    "massingGFA_Total": 2975.625,
+    "estRegisteredArea": 3551.305970149254,
+    "saleableRatio": 1.578358208955224,
+    "estSingleFloorArea": 450,
+    "estFloors": 7,
+    "usageAreas": {
+      "residential": 1707.75,
+      "commercial": 853.875,
+      "agency": 284.625
+    }
+  },
+  "basement": {
+    "basementFloorArea": 700,
+    "calcTotalParking": 23,
+    "totalRequiredArea": 1036,
+    "estBasementFloors": 2,
+    "totalExcavationDepth": 8.1,
+    "basementTotalGFA": 1400
+  },
+  "audit": {
+    "baseVolume": {
+      "source": "Excel V2.5 [Legal] !B12",
+      "rule": "土管分區管制規則"
+    },
+    "siteArea": {
+      "source": "Excel V2.5 [Land] !C5",
+      "rule": "地籍謄本"
+    },
+    "estFloors": {
+      "source": "Excel V2.5 [Massing] !D15",
+      "rule": "慣用估算值 (GFA / 單層)"
+    },
+    "massingGFA_Total": {
+      "source": "Excel V2.5 [Massing] !F20",
+      "rule": "含梯廳陽台總坪"
+    },
+    "estSingleFloorArea": {
+      "source": "Excel V2.5 [Massing] !E10",
+      "rule": "建蔽率推算"
+    },
+    "saleableRatio": {
+      "source": "Excel V2.5 [Summary] !H5",
+      "rule": "銷坪係數"
+    },
+    "estBasementFloors": {
+      "source": "Excel V2.5 [Basement] !C8",
+      "rule": "開挖深度檢討"
+    },
+    "totalExcavationDepth": {
+      "source": "Excel V2.5 [Basement] !C10",
+      "rule": "樓高係數 (3.3m)"
+    },
+    "calcTotalParking": {
+      "source": "Excel V2.5 [Basement] !D5",
+      "rule": "法定+獎勵停車"
+    },
+    "applicationTotal": {
+      "source": "Excel V2.5 [Bonus] !Sum",
+      "rule": "獎勵上限檢討"
+    },
+    "actualBonus": {
+      "source": "Excel V2.5 [Bonus] !Effective",
+      "rule": "危老/都更條例"
+    }
+  },
+  "snapshot": {
+    "calculationVersion": "1.0.0",
+    "timestamp": "2025-12-21T13:22:47.014Z",
+    "inputHash": "9a08309a"
+  }
+}
