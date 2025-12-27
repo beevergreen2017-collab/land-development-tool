@@ -39,6 +39,15 @@ export const computeScenario = (input) => {
         }
     }
 
+    // [Fix] Normalize Legacy Chloride Bonus Mode
+    // Map 'original_ratio' / 'original_volume' -> 'fixed' or valid enum
+    if (input.bonus && input.bonus.chlorideBonusDetails) {
+        const mode = input.bonus.chlorideBonusDetails.calculation_mode;
+        if (mode === 'original_ratio' || mode === 'original_volume') {
+            input.bonus.chlorideBonusDetails.calculation_mode = 'fixed';
+        }
+    }
+
     // Fail-fast checks for schemas
     if (!ScenarioInputSchema || !CalculationResultSchema) {
         const msg = `CRITICAL: Zod Schemas are undefined. This usually means a circular dependency involving 'schema.js'. 
@@ -119,18 +128,12 @@ export const computeScenario = (input) => {
     const baseVolumeSite = calcCapacity(activeParcels);
 
     // [DEBUG] MaxGFA Candidates (User Request)
-    console.debug("[VB] maxGfa candidates:", {
-        baseVolumeAll,
-        baseVolumeSite,
-        selectedIdsCount: selectedIds.length,
-        allParcelsCount: allParcels.length,
-        parcels: allParcels.map(p => ({ id: p.id, area: p.area_m2, rate: p.legal_floor_area_rate }))
-    });
+
 
     const baseVolume = baseVolumeSite; // Use Site Volume for Bonus
 
     // 3. Bonus Calculation
-    const bonusResult = calculateBonus(bonus, baseVolume);
+    const bonusResult = calculateBonus(bonus, baseVolume, siteArea);
 
     // 4. Massing Calculation
     const massingResult = calculateMassing(baseVolume, bonusResult.totalAllowedRate, massing, siteArea);
@@ -187,11 +190,11 @@ export const computeScenario = (input) => {
         totalSiteArea: 0
     };
 
-    if (selectedIds.length > 0) {
+    if (selectedIds.size > 0) {
         // Map ID string to Parcel Object
         // Also ensure we only include parcels that exist
         const activeParcels = allParcels
-            .filter(p => selectedIds.includes(String(p.id)))
+            .filter(p => selectedIds.has(String(p.id)))
             .map(p => ({ ...p, includeInSite: true })); // Force include for calc
 
         siteOutcome = calculateSiteOutcome(activeParcels, mixedZonePolicy, allocation);
@@ -213,7 +216,7 @@ export const computeScenario = (input) => {
     const isDiffWarning = calcMaxGFA > 0 && Math.abs(gfaDiff) > Math.max(1, baseVolume * 0.005);
 
     const siteStats = {
-        count: selectedIds.length,
+        count: selectedIds.size,
         totalArea: calcSiteArea,
         totalAllowedGFA: baseVolume, // Keep original zoning-based calc for reference? Or re-calc based on selection?
         // Requirement says "Total Allowed GFA" is usually strictly zoning. 
@@ -244,9 +247,9 @@ export const computeScenario = (input) => {
     // In strict integration, we should probably follow the Site Selection.
 
     // Let's adjust totalAllowedGFA in siteStats to match selected subset:
-    if (selectedIds.length > 0) {
+    if (selectedIds.size > 0) {
         siteStats.totalAllowedGFA = allParcels
-            .filter(p => selectedIds.includes(String(p.id)))
+            .filter(p => selectedIds.has(String(p.id)))
             .reduce((sum, p) => sum + (Number(p.area_m2 || 0) * (Number(p.legal_floor_area_rate || 0) / 100)), 0);
     } else {
         siteStats.totalAllowedGFA = 0;

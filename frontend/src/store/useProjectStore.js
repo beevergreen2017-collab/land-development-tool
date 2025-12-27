@@ -5,7 +5,7 @@ import { parseApiError } from '../utils/errorHandler';
 import * as ParcelAPI from '../api/parcels';
 import { computeScenario } from '../domain/computeScenario';
 import { ProjectSchema } from '../domain/schema';
-import { SITE_POLICY, CENTRAL_BONUS_ITEMS, LOCAL_BONUS_ITEMS, DISASTER_BONUS_ITEMS, CHLORIDE_BONUS_ITEMS, TOD_BONUS_ITEMS, TOD_INCREMENT_ITEMS } from '../domain/constants';
+import { SITE_POLICY, CENTRAL_BONUS_ITEMS, LOCAL_BONUS_ITEMS, DISASTER_BONUS_ITEMS, CHLORIDE_BONUS_ITEMS } from '../domain/constants';
 import { normalizeBonusDetails } from '../domain/migrations';
 
 // 1. Define Initial State separately for reset/migration usage
@@ -28,27 +28,31 @@ const initialState = {
         bonus_other: 0.0, // Legacy
         disaster_renewal_bonus_ratio: 0.0, // Canonical
         bonus_chloride: 0.0,
-        bonus_tod_reward: 0.0, bonus_tod_increment: 0.0,
-        bonus_soil_mgmt: 0.0, bonus_tod: 0.0, bonus_public_exemption: 7.98, bonus_cap: 100.0
+        bonus_tod: 0.0, // Canonical
+        bonus_soil_mgmt: 0.0, bonus_public_exemption: 7.98, bonus_cap: 100.0
     },
-    // Detailed Structures
-    centralBonusDetails: { checklist: {}, enabled: true, calculation_mode: 'allowed_gfa' },
-    localBonusDetails: { checklist: {}, enabled: true, calculation_mode: 'allowed_gfa' },
-    disasterBonusDetails: { checklist: {}, enabled: true, calculation_mode: 'allowed_gfa' },
-    chlorideBonusDetails: { checklist: {}, enabled: true, calculation_mode: 'existing_gfa' },
-    todRewardBonusDetails: { checklist: {}, enabled: true, calculation_mode: 'fixed' },
-    todIncrementBonusDetails: { checklist: {}, enabled: true, calculation_mode: 'fixed' },
+    // Detailed Checklists
+    centralBonusDetails: { checklist: {}, enabled: true, calculation_mode: 'auto' },
+    localBonusDetails: { checklist: {}, enabled: true, calculation_mode: 'manual' },
+    disasterRenewalBonusDetails: { checklist: {}, enabled: true },
+    chlorideBonusDetails: { checklist: {}, calculation_mode: 'original_ratio' },
+    tod_bonus_details: { checklist: {}, calc_result: {} }, // [NEW] Canonical TOD Details
 
     // Computed
     computedResult: null,
     baselineResult: null,
     computationError: null, // [NEW] Error State
 
-    // UI State (Transient)
+    // UI State (Transient / Persisted)
     isLoading: false,
     error: null,
     draftBonusDetails: null, // Modal Draft state
-    activeDraftKey: null
+    activeDraftKey: null,
+
+    // Project Management UI State
+    projectSearch: '',
+    projectSort: 'recent_updated',
+    showArchived: false
 };
 
 const useProjectStore = create(
@@ -56,10 +60,18 @@ const useProjectStore = create(
         (set, get) => ({
             ...initialState,
 
+            // UI Actions
+            setProjectSearch: (v) => set({ projectSearch: v }),
+            setProjectSort: (v) => set({ projectSort: v }),
+            toggleShowArchived: () => set(state => ({ showArchived: !state.showArchived })),
+
             // Actions
             fetchProjects: async () => {
                 set({ isLoading: true, error: null });
                 try {
+                    // For MVP: Fetch ALL and filter client-side, OR pass params.
+                    // To ensure we get everything including archived if needed (or we fetch active only by default?)
+                    // Let's blindly fetch all for now and filter in UI, simplest for small dataset.
                     const projects = await ProjectAPI.fetchProjects();
                     set({ projects, isLoading: false });
                 } catch (error) {
@@ -67,6 +79,49 @@ const useProjectStore = create(
                     console.error("Structured Error for User:", parsedError);
                     set({ error: parsedError, isLoading: false });
                 }
+            },
+
+            pinProject: async (id, isPinned) => {
+                try {
+                    await ProjectAPI.updateProject(id, { is_pinned: isPinned ? 1 : 0 }); // API expects Int usually? Schema says Int.
+                    // Optimistic Update
+                    set(state => ({
+                        projects: state.projects.map(p => p.id == id ? { ...p, is_pinned: isPinned ? 1 : 0 } : p)
+                    }));
+                } catch (e) {
+                    console.error(e);
+                    get().fetchProjects(); // Revert on fail
+                }
+            },
+
+            archiveProject: async (id) => {
+                try {
+                    const now = new Date().toISOString();
+                    await ProjectAPI.updateProject(id, { archived_at: now });
+                    set(state => ({
+                        projects: state.projects.map(p => p.id == id ? { ...p, archived_at: now } : p)
+                    }));
+                } catch (e) { console.error(e); }
+            },
+
+            restoreProject: async (id) => {
+                try {
+                    await ProjectAPI.updateProject(id, { archived_at: null });
+                    set(state => ({
+                        projects: state.projects.map(p => p.id == id ? { ...p, archived_at: null } : p)
+                    }));
+                } catch (e) { console.error(e); }
+            },
+
+            markProjectOpened: async (id) => {
+                try {
+                    const now = new Date().toISOString();
+                    await ProjectAPI.updateProject(id, { last_opened_at: now });
+                    // No need to blocking wait or full refresh, just update local list
+                    set(state => ({
+                        projects: state.projects.map(p => p.id == id ? { ...p, last_opened_at: now } : p)
+                    }));
+                } catch (e) { console.error(e); }
             },
 
             createProject: async (name) => {
@@ -152,10 +207,8 @@ const useProjectStore = create(
                         bonus_other: fullProject.bonus_other ?? fullProject.disaster_renewal_bonus_ratio ?? 0.0,
                         disaster_renewal_bonus_ratio: fullProject.bonus_other ?? fullProject.disaster_renewal_bonus_ratio ?? 0.0, // UI Alias
                         bonus_chloride: fullProject.bonus_chloride ?? 0.0,
-                        bonus_tod_reward: fullProject.bonus_tod_reward ?? 0.0,
-                        bonus_tod_increment: fullProject.bonus_tod_increment ?? 0.0,
                         bonus_soil_mgmt: fullProject.bonus_soil_mgmt ?? 0.0,
-                        bonus_tod: fullProject.bonus_tod ?? 0.0,
+                        bonus_tod: fullProject.bonus_tod ?? fullProject.bonus_tod_increment ?? 0.0, // Consolidate Legacy
                         bonus_public_exemption: fullProject.bonus_public_exemption ?? 7.98,
                         bonus_cap: fullProject.bonus_cap ?? 100.0,
 
@@ -164,8 +217,10 @@ const useProjectStore = create(
                         localBonusDetails: fullProject.local_bonus_details || {},
                         disasterBonusDetails: fullProject.disaster_renewal_bonus_details || fullProject.disaster_bonus_details || {},
                         chlorideBonusDetails: fullProject.chloride_bonus_details || {},
-                        todRewardBonusDetails: fullProject.tod_reward_bonus_details || {},
-                        todIncrementBonusDetails: fullProject.tod_increment_bonus_details || {}
+                        // Legacy todIncrementBonusDetails support removed or mapped if needed?
+                        // If backend sends it, we map it to canonical `tod_bonus_details` in migration if needed.
+                        // For now we assume normalize/migration did its job.
+                        tod_bonus_details: fullProject.tod_bonus_details || fullProject.todIncrementBonusDetails || {}
                     };
 
                     set({
@@ -178,8 +233,8 @@ const useProjectStore = create(
                         localBonusDetails: normalizeBonusDetails(fullProject.local_bonus_details || fullProject.localBonusDetails, LOCAL_BONUS_ITEMS, 'local_bonus_details'),
                         disasterBonusDetails: normalizeBonusDetails(fullProject.disaster_bonus_details || fullProject.disasterBonusDetails, DISASTER_BONUS_ITEMS, 'disaster_bonus_details'),
                         chlorideBonusDetails: normalizeBonusDetails(fullProject.chloride_bonus_details || fullProject.chlorideBonusDetails, CHLORIDE_BONUS_ITEMS, 'chloride_bonus_details'),
-                        todRewardBonusDetails: normalizeBonusDetails(fullProject.tod_reward_bonus_details || fullProject.todRewardBonusDetails, TOD_BONUS_ITEMS, 'tod_reward_bonus_details'),
-                        todIncrementBonusDetails: normalizeBonusDetails(fullProject.tod_increment_bonus_details || fullProject.todIncrementBonusDetails, TOD_INCREMENT_ITEMS, 'tod_increment_bonus_details')
+                        // [Fix] Normalize Canonical TOD, Dropped Legacy Increment
+                        tod_bonus_details: normalizeBonusDetails(fullProject.tod_bonus_details || fullProject.todIncrementBonusDetails, {}, 'tod_bonus_details')
                     });
                     get().runComputation();
                 } catch (error) {
@@ -391,8 +446,7 @@ const useProjectStore = create(
                     'bonus_other': 'disasterBonusDetails',
                     'disaster_renewal_bonus_ratio': 'disasterBonusDetails', // [Standardized]
                     'bonus_chloride': 'chlorideBonusDetails',
-                    'bonus_tod_reward': 'todRewardBonusDetails',
-                    'bonus_tod_increment': 'todIncrementBonusDetails'
+                    'bonus_tod': 'tod_bonus_details' // [Fix] Canonical Mapping
                 };
                 const internalKey = map[key];
                 if (!internalKey) return null;
@@ -435,8 +489,7 @@ const useProjectStore = create(
                     'bonus_other': 'disasterBonusDetails',
                     'disaster_renewal_bonus_ratio': 'disasterBonusDetails', // [Standardized]
                     'bonus_chloride': 'chlorideBonusDetails',
-                    'bonus_tod_reward': 'todRewardBonusDetails',
-                    'bonus_tod_increment': 'todIncrementBonusDetails'
+                    'bonus_tod': 'tod_bonus_details' // [Fix] Canonical Mapping
                 };
                 const internalKey = map[key];
                 if (!internalKey) return;
@@ -538,8 +591,7 @@ const useProjectStore = create(
                     local_bonus_details: state.localBonusDetails,
                     disaster_renewal_bonus_details: state.disasterBonusDetails,
                     chloride_bonus_details: state.chlorideBonusDetails,
-                    tod_reward_bonus_details: state.todRewardBonusDetails,
-                    tod_increment_bonus_details: state.todIncrementBonusDetails,
+                    tod_bonus_details: state.tod_bonus_details,
 
                     // Canonical Persistence: Always send bonus_other
                     bonus_other: state.bonusData.bonus_other ?? state.bonusData.disaster_renewal_bonus_ratio ?? 0.0,
@@ -595,9 +647,11 @@ const useProjectStore = create(
                 localBonusDetails: state.localBonusDetails,
                 disasterBonusDetails: state.disasterBonusDetails,
                 chlorideBonusDetails: state.chlorideBonusDetails,
-                todRewardBonusDetails: state.todRewardBonusDetails,
-                todIncrementBonusDetails: state.todIncrementBonusDetails,
-                // Exclude: computedResult, isLoading, error, draftBonusDetails
+                tod_bonus_details: state.tod_bonus_details,
+                // UI Config Persistence
+                showArchived: state.showArchived,
+                projectSort: state.projectSort
+                // Exclude: computedResult, isLoading, error, draftBonusDetails, projectSearch
             }),
 
             // 4) Hydration Fail-safe

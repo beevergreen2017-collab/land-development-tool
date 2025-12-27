@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import useProjectStore from '../store/useProjectStore';
 import Massing3D from '../components/Massing3D';
 import Comparator from './Comparator';
@@ -16,8 +16,8 @@ const AuditTag = ({ field, showAudit, audit }) => {
 
 const ResultPanel = () => {
     const { computedResult, baselineResult, basementInputs, captureBaseline, clearBaseline } = useProjectStore();
-    const [showAudit, setShowAudit] = React.useState(false);
-    const [showCompare, setShowCompare] = React.useState(false);
+    const [showAudit, setShowAudit] = useState(false);
+    const [showCompare, setShowCompare] = useState(false);
 
     if (!computedResult) return null;
 

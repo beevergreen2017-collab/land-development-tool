@@ -53,8 +53,12 @@ export const ProjectSchema = z.object({
     local_bonus_details: z.record(z.any()).optional().default({}),
     disaster_renewal_bonus_details: z.record(z.any()).optional().default({}),
     chloride_bonus_details: z.record(z.any()).optional().default({}),
-    tod_reward_bonus_details: z.record(z.any()).optional().default({}),
-    tod_increment_bonus_details: z.record(z.any()).optional().default({}),
+
+    // [NEW] Canonical TOD Bonus
+    tod_bonus_details: z.object({
+        checklist: z.record(z.any()).default({}), // Uses generic record, validated/defaulted in modal
+        calc_result: z.record(z.any()).default({}) // Store details like final D1..D5 ratios
+    }).optional().default({}),
 
     site_config: z.record(z.any()).optional().default({})
 }).passthrough();
@@ -77,8 +81,7 @@ export const BonusInputSchema = z.object({
     bonus_other: z.number().default(0), // [Fix] Canonical
     // disaster_renewal_bonus_ratio: z.number().default(0), // Removed to enforce canonical usage
     bonus_chloride: z.number().default(0),
-    bonus_tod_reward: z.number().default(0),
-    bonus_tod_increment: z.number().default(0),
+    bonus_tod: z.number().default(0), // [NEW] Canonical TOD
     bonus_soil_mgmt: z.number().default(0),
     bonus_public_exemption: z.number().default(0),
     bonus_cap: z.number().default(100.0),
@@ -87,9 +90,7 @@ export const BonusInputSchema = z.object({
     centralBonusDetails: BonusDetailStruct.default({}),
     localBonusDetails: BonusDetailStruct.default({}),
     disasterBonusDetails: BonusDetailStruct.default({}),
-    chlorideBonusDetails: BonusDetailStruct.default({}),
-    todRewardBonusDetails: BonusDetailStruct.default({}),
-    todIncrementBonusDetails: BonusDetailStruct.default({})
+    chlorideBonusDetails: BonusDetailStruct.default({})
 });
 
 export const MassingInputSchema = z.object({
@@ -189,8 +190,7 @@ export const BonusItemResultSchema = z.object({
                 accessibleEnv: z.enum(['notStarted', 'candidate', 'passed', 'certified'])
             }),
             exclusivity: z.object({
-                lockOtherBonuses: z.boolean(),
-                lockedItems: z.array(z.string())
+                mode: z.string().optional() // Keep mode for reference, remove locks
             }),
             scheduleAndDeposit: z.object({
                 planApprovalDate: z.string().nullable(),
@@ -210,7 +210,7 @@ export const BonusResultSchema = z.object({
     items: z.array(BonusItemResultSchema),
     cap: z.number(),
     publicExemption: z.number(),
-    lockedItems: z.array(z.string()).default([])
+    lockedItems: z.array(z.string()).default([]) // [Deprecated] Kept empty for compat, but unused
 });
 
 // --- Computed Stats Schemas ---
@@ -226,16 +226,16 @@ export const ParcelStatsSchema = z.object({
 });
 
 export const SiteStatsSchema = z.object({
-    count: z.number(),
-    totalArea: z.number(),
-    totalAllowedGFA: z.number(),
+    count: z.number().default(0),
+    totalArea: z.number().default(0),
+    totalAllowedGFA: z.number().default(0),
     // Computed Limits
-    maxBuildingArea: z.number(),
-    maxGFA: z.number(),
+    maxBuildingArea: z.number().default(0),
+    maxGFA: z.number().default(0),
 
     // Status
-    gfaDiff: z.number(),
-    isDiffWarning: z.boolean(),
+    gfaDiff: z.number().default(0),
+    isDiffWarning: z.boolean().default(false),
 
     // Metadata
     policy: z.string().optional(),
@@ -246,7 +246,7 @@ export const SiteStatsSchema = z.object({
 export const CalculationResultSchema = z.object({
     baseVolume: z.number(), // 法定基準容積 (Area * FAR)
     siteArea: z.number(),   // 基地面積
-    siteStats: SiteStatsSchema,
+    siteStats: SiteStatsSchema.default({}),
     parcelStats: z.array(ParcelStatsSchema).default([]), // Per-parcel baseline
     bonus: BonusResultSchema,
     massing: MassingResultSchema,

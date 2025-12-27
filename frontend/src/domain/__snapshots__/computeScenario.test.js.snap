@@ -1,0 +1,715 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`computeScenario Regression Tests > Scenario 1: Baseline Residential 1`] = `
+{
+  "audit": {
+    "actualBonus": {
+      "rule": "危老/都更條例",
+      "source": "Excel V2.5 [Bonus] !Effective",
+    },
+    "applicationTotal": {
+      "rule": "獎勵上限檢討",
+      "source": "Excel V2.5 [Bonus] !Sum",
+    },
+    "baseVolume": {
+      "rule": "土管分區管制規則",
+      "source": "Excel V2.5 [Legal] !B12",
+    },
+    "calcTotalParking": {
+      "rule": "法定+獎勵停車",
+      "source": "Excel V2.5 [Basement] !D5",
+    },
+    "estBasementFloors": {
+      "rule": "開挖深度檢討",
+      "source": "Excel V2.5 [Basement] !C8",
+    },
+    "estFloors": {
+      "rule": "慣用估算值 (GFA / 單層)",
+      "source": "Excel V2.5 [Massing] !D15",
+    },
+    "estSingleFloorArea": {
+      "rule": "建蔽率推算",
+      "source": "Excel V2.5 [Massing] !E10",
+    },
+    "massingGFA_Total": {
+      "rule": "含梯廳陽台總坪",
+      "source": "Excel V2.5 [Massing] !F20",
+    },
+    "saleableRatio": {
+      "rule": "銷坪係數",
+      "source": "Excel V2.5 [Summary] !H5",
+    },
+    "siteArea": {
+      "rule": "地籍謄本",
+      "source": "Excel V2.5 [Land] !C5",
+    },
+    "totalExcavationDepth": {
+      "rule": "樓高係數 (3.3m)",
+      "source": "Excel V2.5 [Basement] !C10",
+    },
+  },
+  "baseVolume": 1999.8,
+  "basement": {
+    "basementFloorArea": 699.93,
+    "basementTotalGFA": 1399.86,
+    "calcTotalParking": 19,
+    "estBasementFloors": 2,
+    "totalExcavationDepth": 8.1,
+    "totalRequiredArea": 872,
+  },
+  "bonus": {
+    "actualBonus": 10,
+    "applicationTotal": 10,
+    "cap": 100,
+    "items": [
+      {
+        "area": 199.98,
+        "details": {},
+        "key": "bonus_central",
+        "label": "中央都更獎勵",
+        "note": null,
+        "ratio": 10,
+      },
+      {
+        "area": 0,
+        "details": {},
+        "key": "bonus_local",
+        "label": "地方都更獎勵",
+        "note": null,
+        "ratio": 0,
+      },
+      {
+        "area": 0,
+        "details": {
+          "eligibility": {
+            "idValue": 0,
+            "legalBuildingProof": null,
+            "missing": [],
+            "seismicPath": null,
+            "siteAreaM2": 0,
+            "siteAreaOk": false,
+            "urbanRenewalMode": false,
+          },
+          "exclusivity": {
+            "mode": "standard",
+          },
+        },
+        "key": "bonus_other",
+        "label": "防災型都更獎勵",
+        "note": "一般獎勵模式 (Standard Mode)",
+        "ratio": 0,
+      },
+      {
+        "area": 0,
+        "details": {},
+        "key": "bonus_chloride",
+        "label": "高氯離子建物獎勵（海砂屋）",
+        "note": null,
+        "ratio": 0,
+      },
+      {
+        "area": 0,
+        "details": {
+          "soil802": {
+            "areaOk": false,
+            "displayRate": 0,
+            "effectiveRate": 0,
+            "note": null,
+          },
+        },
+        "key": "bonus_soil_mgmt",
+        "label": "土管80-2",
+        "note": null,
+        "ratio": 0,
+      },
+      {
+        "area": 0,
+        "details": [],
+        "key": "bonus_public_exemption",
+        "label": "公益性免計容積",
+        "note": null,
+        "ratio": 0,
+      },
+      {
+        "area": 0,
+        "details": {
+          "manual_override": 0,
+        },
+        "key": "bonus_tod",
+        "label": "TOD 容積獎勵",
+        "note": null,
+        "ratio": 0,
+      },
+    ],
+    "lockedItems": [],
+    "publicExemption": 0,
+    "totalAllowedRate": 110,
+  },
+  "massing": {
+    "allowedVolumeArea": 2199.78,
+    "estFloors": 7,
+    "estRegisteredArea": 3472.0408208955228,
+    "estSingleFloorArea": 449.955,
+    "massingBalconyArea": 126.48735000000002,
+    "massingGFA_NoBalcony": 2782.7217000000005,
+    "massingGFA_Total": 2909.2090500000004,
+    "massingMEArea": 329.96700000000004,
+    "massingStairArea": 252.97470000000004,
+    "saleableRatio": 1.578358208955224,
+    "usageAreas": {
+      "agency": 0,
+      "commercial": 0,
+      "residential": 2782.7217000000005,
+    },
+  },
+  "parcelStats": [
+    {
+      "id": "parcel-1",
+      "maxFootprint": null,
+      "maxGfa": null,
+      "warnings": [
+        {
+          "msg": "Parcel 123 missing BCR limit",
+          "path": "parcels.parcel-1.bcrLimit",
+          "type": "warn",
+        },
+        {
+          "msg": "Parcel 123 missing FAR limit",
+          "path": "parcels.parcel-1.farLimit",
+          "type": "warn",
+        },
+      ],
+    },
+  ],
+  "siteArea": 999.9,
+  "siteStats": {
+    "count": 1,
+    "gfaDiff": 1999.8,
+    "isDiffWarning": false,
+    "maxBuildingArea": 0,
+    "maxGFA": 0,
+    "policy": "weightedAverage",
+    "totalAllowedGFA": 1999.8,
+    "totalArea": 999.9,
+    "validations": [
+      {
+        "msg": "1 筆地號缺少建蔽率 (Missing BCR)",
+        "type": "warn",
+      },
+      {
+        "msg": "1 筆地號缺少容積率 (Missing FAR)",
+        "type": "warn",
+      },
+    ],
+    "zoneBreakdown": {
+      "Residential": {
+        "bcrLimit": null,
+        "farLimit": null,
+        "parcels": [
+          {
+            "area_m2": 999.9,
+            "bcrLimit": null,
+            "district": "Test District",
+            "farLimit": null,
+            "id": "parcel-1",
+            "includeInSite": true,
+            "integrationRisk": "unknown",
+            "legal_coverage_rate": 50,
+            "legal_floor_area_rate": 200,
+            "lot_number": "123",
+            "ownershipStatus": "unknown",
+            "road_width": 8,
+            "section_name": "Test Section",
+            "zoning_type": "Residential",
+          },
+        ],
+        "totalArea": 999.9,
+        "totalMaxFootprint": 0,
+        "totalMaxGfa": 0,
+        "zone": "Residential",
+      },
+    },
+  },
+  "snapshot": {
+    "calculationVersion": "1.0.0",
+    "inputHash": "5ac366fe",
+    "timestamp": "2025-12-27T03:35:28.466Z",
+  },
+}
+`;
+
+exports[`computeScenario Regression Tests > Scenario 2: Complex Mixed-Use + TOD 1`] = `
+{
+  "audit": {
+    "actualBonus": {
+      "rule": "危老/都更條例",
+      "source": "Excel V2.5 [Bonus] !Effective",
+    },
+    "applicationTotal": {
+      "rule": "獎勵上限檢討",
+      "source": "Excel V2.5 [Bonus] !Sum",
+    },
+    "baseVolume": {
+      "rule": "土管分區管制規則",
+      "source": "Excel V2.5 [Legal] !B12",
+    },
+    "calcTotalParking": {
+      "rule": "法定+獎勵停車",
+      "source": "Excel V2.5 [Basement] !D5",
+    },
+    "estBasementFloors": {
+      "rule": "開挖深度檢討",
+      "source": "Excel V2.5 [Basement] !C8",
+    },
+    "estFloors": {
+      "rule": "慣用估算值 (GFA / 單層)",
+      "source": "Excel V2.5 [Massing] !D15",
+    },
+    "estSingleFloorArea": {
+      "rule": "建蔽率推算",
+      "source": "Excel V2.5 [Massing] !E10",
+    },
+    "massingGFA_Total": {
+      "rule": "含梯廳陽台總坪",
+      "source": "Excel V2.5 [Massing] !F20",
+    },
+    "saleableRatio": {
+      "rule": "銷坪係數",
+      "source": "Excel V2.5 [Summary] !H5",
+    },
+    "siteArea": {
+      "rule": "地籍謄本",
+      "source": "Excel V2.5 [Land] !C5",
+    },
+    "totalExcavationDepth": {
+      "rule": "樓高係數 (3.3m)",
+      "source": "Excel V2.5 [Basement] !C10",
+    },
+  },
+  "baseVolume": 3600,
+  "basement": {
+    "basementFloorArea": 850,
+    "basementTotalGFA": 2550,
+    "calcTotalParking": 48,
+    "estBasementFloors": 3,
+    "totalExcavationDepth": 11.399999999999999,
+    "totalRequiredArea": 2148,
+  },
+  "bonus": {
+    "actualBonus": 25,
+    "applicationTotal": 25,
+    "cap": 150,
+    "items": [
+      {
+        "area": 0,
+        "details": {},
+        "key": "bonus_central",
+        "label": "中央都更獎勵",
+        "note": null,
+        "ratio": 0,
+      },
+      {
+        "area": 0,
+        "details": {},
+        "key": "bonus_local",
+        "label": "地方都更獎勵",
+        "note": null,
+        "ratio": 0,
+      },
+      {
+        "area": 0,
+        "details": {
+          "eligibility": {
+            "idValue": 0,
+            "legalBuildingProof": null,
+            "missing": [],
+            "seismicPath": null,
+            "siteAreaM2": 0,
+            "siteAreaOk": false,
+            "urbanRenewalMode": false,
+          },
+          "exclusivity": {
+            "mode": "standard",
+          },
+        },
+        "key": "bonus_other",
+        "label": "防災型都更獎勵",
+        "note": "一般獎勵模式 (Standard Mode)",
+        "ratio": 0,
+      },
+      {
+        "area": 0,
+        "details": {},
+        "key": "bonus_chloride",
+        "label": "高氯離子建物獎勵（海砂屋）",
+        "note": null,
+        "ratio": 0,
+      },
+      {
+        "area": 0,
+        "details": {
+          "soil802": {
+            "areaOk": false,
+            "displayRate": 0,
+            "effectiveRate": 0,
+            "note": null,
+          },
+        },
+        "key": "bonus_soil_mgmt",
+        "label": "土管80-2",
+        "note": null,
+        "ratio": 0,
+      },
+      {
+        "area": 0,
+        "details": [],
+        "key": "bonus_public_exemption",
+        "label": "公益性免計容積",
+        "note": null,
+        "ratio": 0,
+      },
+      {
+        "area": 900,
+        "details": {
+          "manual_override": 25,
+        },
+        "key": "bonus_tod",
+        "label": "TOD 容積獎勵",
+        "note": null,
+        "ratio": 25,
+      },
+    ],
+    "lockedItems": [],
+    "publicExemption": 0,
+    "totalAllowedRate": 125,
+  },
+  "massing": {
+    "allowedVolumeArea": 4500,
+    "estFloors": 14,
+    "estRegisteredArea": 7102.611940298508,
+    "estSingleFloorArea": 450,
+    "massingBalconyArea": 258.75,
+    "massingGFA_NoBalcony": 5692.5,
+    "massingGFA_Total": 5951.25,
+    "massingMEArea": 675,
+    "massingStairArea": 517.5,
+    "saleableRatio": 1.578358208955224,
+    "usageAreas": {
+      "agency": 569.25,
+      "commercial": 2277,
+      "residential": 2846.25,
+    },
+  },
+  "parcelStats": [
+    {
+      "id": "parcel-1",
+      "maxFootprint": null,
+      "maxGfa": null,
+      "warnings": [
+        {
+          "msg": "Parcel 123 missing BCR limit",
+          "path": "parcels.parcel-1.bcrLimit",
+          "type": "warn",
+        },
+        {
+          "msg": "Parcel 123 missing FAR limit",
+          "path": "parcels.parcel-1.farLimit",
+          "type": "warn",
+        },
+      ],
+    },
+  ],
+  "siteArea": 1000,
+  "siteStats": {
+    "count": 1,
+    "gfaDiff": 3600,
+    "isDiffWarning": false,
+    "maxBuildingArea": 0,
+    "maxGFA": 0,
+    "policy": "weightedAverage",
+    "totalAllowedGFA": 3600,
+    "totalArea": 1000,
+    "validations": [
+      {
+        "msg": "1 筆地號缺少建蔽率 (Missing BCR)",
+        "type": "warn",
+      },
+      {
+        "msg": "1 筆地號缺少容積率 (Missing FAR)",
+        "type": "warn",
+      },
+    ],
+    "zoneBreakdown": {
+      "Commercial": {
+        "bcrLimit": null,
+        "farLimit": null,
+        "parcels": [
+          {
+            "area_m2": 1000,
+            "bcrLimit": null,
+            "district": "Test District",
+            "farLimit": null,
+            "id": "parcel-1",
+            "includeInSite": true,
+            "integrationRisk": "unknown",
+            "legal_coverage_rate": 60,
+            "legal_floor_area_rate": 360,
+            "lot_number": "123",
+            "ownershipStatus": "unknown",
+            "road_width": 8,
+            "section_name": "Test Section",
+            "zoning_type": "Commercial",
+          },
+        ],
+        "totalArea": 1000,
+        "totalMaxFootprint": 0,
+        "totalMaxGfa": 0,
+        "zone": "Commercial",
+      },
+    },
+  },
+  "snapshot": {
+    "calculationVersion": "1.0.0",
+    "inputHash": "47789eab",
+    "timestamp": "2025-12-27T03:35:28.470Z",
+  },
+}
+`;
+
+exports[`computeScenario Regression Tests > Scenario 3: Small Lot with Disaster Bonus 1`] = `
+{
+  "audit": {
+    "actualBonus": {
+      "rule": "危老/都更條例",
+      "source": "Excel V2.5 [Bonus] !Effective",
+    },
+    "applicationTotal": {
+      "rule": "獎勵上限檢討",
+      "source": "Excel V2.5 [Bonus] !Sum",
+    },
+    "baseVolume": {
+      "rule": "土管分區管制規則",
+      "source": "Excel V2.5 [Legal] !B12",
+    },
+    "calcTotalParking": {
+      "rule": "法定+獎勵停車",
+      "source": "Excel V2.5 [Basement] !D5",
+    },
+    "estBasementFloors": {
+      "rule": "開挖深度檢討",
+      "source": "Excel V2.5 [Basement] !C8",
+    },
+    "estFloors": {
+      "rule": "慣用估算值 (GFA / 單層)",
+      "source": "Excel V2.5 [Massing] !D15",
+    },
+    "estSingleFloorArea": {
+      "rule": "建蔽率推算",
+      "source": "Excel V2.5 [Massing] !E10",
+    },
+    "massingGFA_Total": {
+      "rule": "含梯廳陽台總坪",
+      "source": "Excel V2.5 [Massing] !F20",
+    },
+    "saleableRatio": {
+      "rule": "銷坪係數",
+      "source": "Excel V2.5 [Summary] !H5",
+    },
+    "siteArea": {
+      "rule": "地籍謄本",
+      "source": "Excel V2.5 [Land] !C5",
+    },
+    "totalExcavationDepth": {
+      "rule": "樓高係數 (3.3m)",
+      "source": "Excel V2.5 [Basement] !C10",
+    },
+  },
+  "baseVolume": 240,
+  "basement": {
+    "basementFloorArea": 90,
+    "basementTotalGFA": 180,
+    "calcTotalParking": 3,
+    "estBasementFloors": 2,
+    "totalExcavationDepth": 8.1,
+    "totalRequiredArea": 136,
+  },
+  "bonus": {
+    "actualBonus": 0,
+    "applicationTotal": 30,
+    "cap": 100,
+    "items": [
+      {
+        "area": 0,
+        "details": {},
+        "key": "bonus_central",
+        "label": "中央都更獎勵",
+        "note": null,
+        "ratio": 0,
+      },
+      {
+        "area": 0,
+        "details": {},
+        "key": "bonus_local",
+        "label": "地方都更獎勵",
+        "note": null,
+        "ratio": 0,
+      },
+      {
+        "area": 72,
+        "details": {
+          "eligibility": {
+            "idValue": 0,
+            "legalBuildingProof": null,
+            "missing": [],
+            "seismicPath": null,
+            "siteAreaM2": 0,
+            "siteAreaOk": false,
+            "urbanRenewalMode": false,
+          },
+          "exclusivity": {
+            "mode": "standard",
+          },
+        },
+        "key": "bonus_other",
+        "label": "防災型都更獎勵",
+        "note": "一般獎勵模式 (Standard Mode)",
+        "ratio": 30,
+      },
+      {
+        "area": 0,
+        "details": {},
+        "key": "bonus_chloride",
+        "label": "高氯離子建物獎勵（海砂屋）",
+        "note": null,
+        "ratio": 0,
+      },
+      {
+        "area": 0,
+        "details": {
+          "soil802": {
+            "areaOk": false,
+            "displayRate": 0,
+            "effectiveRate": 0,
+            "note": null,
+          },
+        },
+        "key": "bonus_soil_mgmt",
+        "label": "土管80-2",
+        "note": null,
+        "ratio": 0,
+      },
+      {
+        "area": 0,
+        "details": [],
+        "key": "bonus_public_exemption",
+        "label": "公益性免計容積",
+        "note": null,
+        "ratio": 0,
+      },
+      {
+        "area": 0,
+        "details": {
+          "manual_override": 0,
+        },
+        "key": "bonus_tod",
+        "label": "TOD 容積獎勵",
+        "note": null,
+        "ratio": 0,
+      },
+    ],
+    "lockedItems": [],
+    "publicExemption": 0,
+    "totalAllowedRate": 100,
+  },
+  "massing": {
+    "allowedVolumeArea": 240,
+    "estFloors": 6,
+    "estRegisteredArea": 378.80597014925377,
+    "estSingleFloorArea": 55.00000000000001,
+    "massingBalconyArea": 13.8,
+    "massingGFA_NoBalcony": 303.6,
+    "massingGFA_Total": 317.40000000000003,
+    "massingMEArea": 36,
+    "massingStairArea": 27.6,
+    "saleableRatio": 1.578358208955224,
+    "usageAreas": {
+      "agency": 30.360000000000003,
+      "commercial": 91.08,
+      "residential": 182.16,
+    },
+  },
+  "parcelStats": [
+    {
+      "id": "parcel-1",
+      "maxFootprint": null,
+      "maxGfa": null,
+      "warnings": [
+        {
+          "msg": "Parcel 123 missing BCR limit",
+          "path": "parcels.parcel-1.bcrLimit",
+          "type": "warn",
+        },
+        {
+          "msg": "Parcel 123 missing FAR limit",
+          "path": "parcels.parcel-1.farLimit",
+          "type": "warn",
+        },
+      ],
+    },
+  ],
+  "siteArea": 100,
+  "siteStats": {
+    "count": 1,
+    "gfaDiff": 240,
+    "isDiffWarning": false,
+    "maxBuildingArea": 0,
+    "maxGFA": 0,
+    "policy": "weightedAverage",
+    "totalAllowedGFA": 240,
+    "totalArea": 100,
+    "validations": [
+      {
+        "msg": "1 筆地號缺少建蔽率 (Missing BCR)",
+        "type": "warn",
+      },
+      {
+        "msg": "1 筆地號缺少容積率 (Missing FAR)",
+        "type": "warn",
+      },
+    ],
+    "zoneBreakdown": {
+      "Residential": {
+        "bcrLimit": null,
+        "farLimit": null,
+        "parcels": [
+          {
+            "area_m2": 100,
+            "bcrLimit": null,
+            "district": "Test District",
+            "farLimit": null,
+            "id": "parcel-1",
+            "includeInSite": true,
+            "integrationRisk": "unknown",
+            "legal_coverage_rate": 60,
+            "legal_floor_area_rate": 240,
+            "lot_number": "123",
+            "ownershipStatus": "unknown",
+            "road_width": 8,
+            "section_name": "Test Section",
+            "zoning_type": "Residential",
+          },
+        ],
+        "totalArea": 100,
+        "totalMaxFootprint": 0,
+        "totalMaxGfa": 0,
+        "zone": "Residential",
+      },
+    },
+  },
+  "snapshot": {
+    "calculationVersion": "1.0.0",
+    "inputHash": "285d02e1",
+    "timestamp": "2025-12-27T03:35:28.471Z",
+  },
+}
+`;

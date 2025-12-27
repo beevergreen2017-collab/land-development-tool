@@ -89,43 +89,37 @@ export const CHLORIDE_BONUS_ITEMS = {
     area_underground: { title: "B1 地下層 (申請)", type: "input", unit: "m²" }
 };
 
-// --- TOD 容積獎勵 (Detailed) ---
-export const TOD_CONFIG = {
-    station_type: {
-        title: "場站分級",
-        options: [
-            { label: "第一級場站 (高運量/轉乘)", value: "level1" },
-            { label: "第二級場站 (其他)", value: "level2" }
-        ]
+
+
+
+
+// --- TOD Bonus Constants (Canonical) ---
+export const TOD_CONSTANTS = {
+    CAPS: {
+        level1: { core: 30, general: 15 }, // 第一級: 核心30%, 一般15%
+        level2: { core: 20, general: 10 }  // 第二級: 核心20%, 一般10%
     },
-    zone_type: {
-        title: "適用分區",
-        options: [
-            { label: "核心區 (150m內)", value: "core" },
-            { label: "一般區 (150-500m)", value: "general" }
-        ]
-    },
-    // Caps definition [Level][Zone]
-    caps: {
-        level1: { core: 30, general: 15 },
-        level2: { core: 20, general: 10 }
+    STATION_TYPES: [
+        { label: "第一級場站 (高運量/轉乘)", value: "level1" },
+        { label: "第二級場站 (其他)", value: "level2" }
+    ],
+    ZONE_TYPES: [
+        { label: "核心區 (150m內 / 300m內)", value: "core" },
+        { label: "一般區 (150-500m / 300-500m)", value: "general" }
+    ],
+    // D3 Levels
+    D3_LEVELS: [
+        { label: "標準級 (1%/2%/3%)", value: "std" },
+        { label: "進階級 (2%/4%/6%)", value: "adv" }
+    ],
+    // D1-D5 Strict Definitions (PDF)
+    DETAILS: {
+        D1: { title: "ΔD1 移設捷運設施或增設捷運出入口", short: "ΔD1 捷運設施/出入口" },
+        D2: { title: "ΔD2 設置自行車轉乘停放空間", short: "ΔD2 自行車轉乘" },
+        D3: { title: "ΔD3 留設友善人行空間", short: "ΔD3 友善人行" },
+        D4: { title: "ΔD4 回饋公益設施空間", short: "ΔD4 回饋公益設施" },
+        D5: { title: "ΔD5 繳納代金", short: "ΔD5 繳納代金" }
     }
-};
-
-export const TOD_BONUS_ITEMS = {
-    d1_rate: { title: "ΔD1 捷運設施/出入口", type: "input", unit: "%", note: "地面層 1.0 / 其他 0.5" },
-    d2_rate: { title: "ΔD2 自行車/停車轉乘", type: "input", unit: "%" },
-    d3_rate: { title: "ΔD3 友善人行環境", type: "logic", note: "依等級/項目/棟數計算" },
-    d4_rate: { title: "ΔD4 公益設施捐贈", type: "input", unit: "%", note: "捐贈價值 50% 換算" },
-    d5_rate: { title: "ΔD5 代金繳納", type: "input", unit: "%", note: "代金價值 50% 換算" }
-};
-
-// --- TOD 增額容積 (Increment) ---
-export const TOD_INCREMENT_ITEMS = {
-    formula_check: { title: "1. 符合土管 80-2 檢核公式", type: "checkbox", required: true },
-    road_width: { title: "2. 臨路寬度符合規定", type: "checkbox", required: true },
-    scale_check: { title: "3. 基地規模符合規定", type: "checkbox", required: true },
-    public_space: { title: "4. 留設開放空間", type: "checkbox", required: false }
 };
 
 // --- Enums (Centralized) ---

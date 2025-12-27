@@ -21,9 +21,7 @@ const LEGACY_KEY_MAPPINGS = {
         'siteAreaM2': 'base_area_m2',
         'risk_check': 'has_risk_assessment'
     },
-    'chloride_bonus_details': {},
-    'tod_reward_bonus_details': {},
-    'tod_increment_bonus_details': {}
+    'chloride_bonus_details': {}
 };
 
 // --- LOGIC ---
@@ -78,4 +76,32 @@ export const normalizeBonusDetails = (persistedData, configItems, scopeKey = nul
         calculation_mode: safeData.calculation_mode ?? 'allowed_gfa',
         checklist: normalizedChecklist
     };
+};
+
+/**
+ * Global Migration helper to clean up the entire bonus map (called before individual normalizations or after)
+ * @param {Object} bonusMap - The full bonus.details map
+ */
+export const migrateGlobalBonusMap = (bonusMap) => {
+    if (!bonusMap) return {};
+    const safeMap = { ...bonusMap };
+
+    // 1. TOD Consolidation: Legacy -> Canonical 'bonus_tod'
+    // Map 'bonus_tod_increment' (old 80-2 user input) to 'bonus_tod' if 'bonus_tod' is empty
+    if (safeMap.bonus_tod_increment !== undefined) {
+        if (!safeMap.bonus_tod) safeMap.bonus_tod = safeMap.bonus_tod_increment;
+        delete safeMap.bonus_tod_increment;
+    }
+    // Delete 'bonus_tod_reward' (old concept)
+    if (safeMap.bonus_tod_reward !== undefined) delete safeMap.bonus_tod_reward;
+
+    // Details migration: todIncrementBonusDetails -> tod_bonus_details
+    if (safeMap.todIncrementBonusDetails) {
+        if (!safeMap.tod_bonus_details) safeMap.tod_bonus_details = safeMap.todIncrementBonusDetails;
+        delete safeMap.todIncrementBonusDetails;
+    }
+    // Delete todRewardBonusDetails
+    if (safeMap.todRewardBonusDetails) delete safeMap.todRewardBonusDetails;
+
+    return safeMap;
 };

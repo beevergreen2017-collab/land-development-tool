@@ -3,33 +3,34 @@ import { Plus, Edit, List } from 'lucide-react';
 import useProjectStore from '../store/useProjectStore';
 import LandMap from '../components/LandMap';
 
-import { ZONING_RATES, CENTRAL_BONUS_ITEMS, LOCAL_BONUS_ITEMS, DISASTER_BONUS_ITEMS, CHLORIDE_BONUS_ITEMS, TOD_BONUS_ITEMS, TOD_INCREMENT_ITEMS, TOD_CONFIG, OWNERSHIP_STATUS_OPTIONS, INTEGRATION_RISK_OPTIONS, MIXED_ZONE_POLICY_OPTIONS, SITE_POLICY } from '../domain/constants';
+import { ZONING_RATES, CENTRAL_BONUS_ITEMS, LOCAL_BONUS_ITEMS, DISASTER_BONUS_ITEMS, CHLORIDE_BONUS_ITEMS, TOD_CONSTANTS, OWNERSHIP_STATUS_OPTIONS, INTEGRATION_RISK_OPTIONS, MIXED_ZONE_POLICY_OPTIONS, SITE_POLICY } from '../domain/constants';
 import DetailModalFooter from './DetailModalFooter';
 import { fetchLandInfo } from '../api/parcels';
-import { normalizeTodDetails, toNum, fmtFixed } from '../domain/bonusHelpers';
+import { toNum, fmtFixed } from '../domain/bonusHelpers';
 
 // Bonus Row Component (Moved outside to fix lint)
 const RenderBonusRow = ({ label, name, value, note, baseVolume, setBonusData, saveScenario, isInput = true, icon: Icon = null, onIconClick = null, calculatedArea = null, status = null, isDisabled = false }) => {
-    // Determine lock visually
-    const isLocked = isDisabled || status === 'locked';
+    // [Mutex Removal] Lock state logic removed. `isLocked` is now strictly false.
+    // isDisabled logic handled by prop directly.
+    const isLocked = false;
     const isCompliant = status === 'pass';
     const isNonCompliant = status === 'fail';
 
     return (
-        <tr className={isLocked ? "bg-gray-50 opacity-60" : "hover:bg-blue-50 transition-colors"}>
+        <tr className={isDisabled ? "bg-gray-50 opacity-60" : "hover:bg-blue-50 transition-colors"}>
             <td className="px-6 py-2 border-r flex items-center gap-2 text-sm font-medium h-full">
-                {isCompliant && !isLocked && <span className="text-green-600 font-bold" title="符合 (Compliant)">✔</span>}
-                {isNonCompliant && !isLocked && <span className="text-red-600 font-bold" title="未符合 (Non-Compliant)">✘</span>}
-                {isLocked && <span className="text-gray-400 font-bold" title="Locked">🔒</span>}
+                {isCompliant && <span className="text-green-600 font-bold" title="符合 (Compliant)">✔</span>}
+                {isNonCompliant && <span className="text-red-600 font-bold" title="未符合 (Non-Compliant)">✘</span>}
 
-                <span className={isLocked ? "text-gray-500" : "text-gray-900"}>{label}</span>
+                <span className={isDisabled ? "text-gray-500" : "text-gray-900"}>{label}</span>
 
-                {Icon && !isLocked && (
+                {Icon && (
                     <button
                         onClick={onIconClick}
                         className="p-1 hover:bg-blue-100 rounded text-blue-500 transition-colors ml-auto"
                         title="Edit Details"
                         type="button"
+                        disabled={isDisabled}
                     >
                         <Icon className="w-4 h-4" />
                     </button>
@@ -40,20 +41,20 @@ const RenderBonusRow = ({ label, name, value, note, baseVolume, setBonusData, sa
                     <div className="flex items-center">
                         <input
                             type="number"
-                            value={value === null || value === undefined ? '' : value}
+                            value={value === null || value === undefined ? '' : Math.round(value * 100) / 100}
                             onChange={e => setBonusData(name, parseFloat(e.target.value) || 0)}
                             onBlur={saveScenario}
-                            disabled={!!onIconClick || isLocked}
-                            className={`w-full text-sm border-gray-300 rounded px-2 py-1 text-right ${(!!onIconClick || isLocked) ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
+                            disabled={isDisabled}
+                            className={`w-full text-sm border-gray-300 rounded px-2 py-1 text-right ${isDisabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
                         />
                         <span className="ml-2 text-sm">%</span>
                     </div>
-                ) : <div className="text-right px-2 text-sm">{value}%</div>}
+                ) : <div className="text-right px-2 text-sm">{typeof value === 'number' ? value.toFixed(2) : value}%</div>}
             </td>
             <td className="px-6 py-2 border-r text-right font-mono text-gray-700">
                 {(calculatedArea !== null ? calculatedArea : (baseVolume > 0 ? (baseVolume * value / 100) : 0)).toLocaleString(undefined, { maximumFractionDigits: 1 })} m²
             </td>
-            <td className={`px-6 py-2 text-sm ${isLocked ? 'text-red-500 italic font-bold' : 'text-gray-500'}`}>{note}</td>
+            <td className="px-6 py-2 text-sm text-gray-500">{note}</td>
         </tr>
     );
 };
@@ -63,13 +64,15 @@ const ScenarioForm = () => {
         selectedProject,
         siteInputs, // [NEW] Use detached inputs
         updateProject,
-        massingInputs, bonusData,
+        massingInputs, bonusData, basementInputs,
         addParcel, updateParcel,
-        setMassingInput, setBonusData,
+        setMassingInput, setBonusData, setBasementInput,
         // setCentralBonusDetail, setLocalBonusDetail, setDisasterBonusDetail, setBonusDetailStruct,
         initDraft, setBonusDetailsDraft, commitBonusDetails, discardDraft, draftBonusDetails,
         saveScenario, computedResult, updateSiteConfig, setMixedZonePolicy
     } = useProjectStore();
+
+    const safeNum = (v) => Number(v) || 0;
 
     // Local State for Modals & Forms
     const [isParcelModalOpen, setIsParcelModalOpen] = useState(false);
@@ -116,6 +119,10 @@ const ScenarioForm = () => {
         massingMEArea: 0, massingStairArea: 0, massingBalconyArea: 0,
         massingGFA_Total: 0, estFloors: 0, estSingleFloorArea: 0, allowedVolumeArea: 0, saleableRatio: 0,
         usageAreas: { residential: 0, commercial: 0, agency: 0 }
+    };
+
+    const basementCalc = computedResult ? computedResult.basement : {
+        estBasementFloors: 0, basementFloorArea: 0, basementTotalGFA: 0, totalExcavationDepth: 0, calcTotalParking: 0
     };
 
 
@@ -465,14 +472,9 @@ const ScenarioForm = () => {
                                 // [Fix] Use Canonical Key for Disaster Bonus to match Domain Loop
                                 { key: 'bonus_other', label: '防災型都更獎勵', note: '包含高額獎勵', hasDetails: true },
                                 { key: 'bonus_chloride', label: '高氯離子建物獎勵（海砂屋）', hasDetails: true },
-                                { key: 'bonus_tod_reward', label: 'TOD 容積獎勵', hasDetails: true },
-                                { key: 'bonus_tod_increment', label: '土管 80-2 容積獎勵', hasDetails: true },
-                                { key: 'bonus_soil_mgmt', label: '廢土清理/其他', hasDetails: false }
+                                { key: 'bonus_tod', label: 'TOD 容積獎勵', hasDetails: true },
+                                { key: 'bonus_soil_mgmt', label: '土管80-2', hasDetails: true }
                             ].map(row => {
-                                // Determine lock status
-                                const lockedItems = computedResult?.bonus?.lockedItems || [];
-                                const isLocked = lockedItems.includes(row.key);
-
                                 // Find calculated item from domain result
                                 const domainItem = computedResult?.bonus?.items?.find(i => i.key === row.key);
                                 const area = domainItem?.area || 0;
@@ -484,23 +486,24 @@ const ScenarioForm = () => {
 
                                 return (
                                     <RenderBonusRow
-                                        status={isLocked ? 'locked' : status}
+                                        status={status}
                                         key={row.key}
                                         label={row.label}
                                         name={row.key}
-                                        value={isLocked ? 0 : bonusData[row.key]} // Force 0 display if locked
+                                        value={bonusData[row.key]}
                                         calculatedArea={area}
                                         baseVolume={baseVolume}
-                                        setBonusData={!isLocked ? setBonusData : () => { }} // No-op if locked
-                                        saveScenario={!isLocked ? saveScenario : () => { }}
-                                        note={isLocked ? '已鎖定 (互斥)' : row.note}
-                                        icon={isLocked ? Lock : List} // Show Lock icon if locked
-                                        // Disable click if locked
-                                        onIconClick={(!isLocked && row.hasDetails) ? () => {
+                                        setBonusData={setBonusData} // Always active
+                                        saveScenario={saveScenario}
+                                        // note={row.note} // Always use default note
+                                        note={row.note}
+                                        icon={List} // Always use List icon
+                                        // Always active
+                                        onIconClick={row.hasDetails ? () => {
                                             initDraft(row.key);
                                             setActiveBonusKey(row.key);
                                         } : null}
-                                        isDisabled={isLocked}
+                                        isDisabled={false} // Never disabled by mutex
                                     />
                                 );
                             })}
@@ -675,6 +678,121 @@ const ScenarioForm = () => {
                     </div>
                 </div>
             </div >
+
+            {/* Basement Assessment */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="p-6 border-b border-gray-100 bg-gray-50 h-16 flex items-center">
+                    <h3 className="text-lg font-bold text-gray-700 border-l-4 border-gray-500 pl-3">地下層評估 (Basement Assessment)</h3>
+                </div>
+                <div className="p-6">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        {/* 1. Excavation Rate (%) */}
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">開挖率 (%)</label>
+                            <input
+                                type="number"
+                                value={basementInputs?.excavation_rate ?? ''}
+                                onChange={e => setBasementInput('excavation_rate', parseFloat(e.target.value))}
+                                onBlur={saveScenario}
+                                className="w-full border p-2 rounded text-center"
+                            />
+                        </div>
+                        {/* 2. Floor Height (m) */}
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">層高 (m)</label>
+                            <input
+                                type="number"
+                                value={basementInputs?.floor_height ?? ''}
+                                onChange={e => setBasementInput('floor_height', parseFloat(e.target.value))}
+                                onBlur={saveScenario}
+                                className="w-full border p-2 rounded text-center"
+                            />
+                        </div>
+                        {/* 3. Car Park Area m2/unit */}
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">汽車車位面積 (m²/車)</label>
+                            <input
+                                type="number"
+                                value={basementInputs?.parking_space_area ?? ''}
+                                onChange={e => setBasementInput('parking_space_area', parseFloat(e.target.value))}
+                                onBlur={saveScenario}
+                                className="w-full border p-2 rounded text-center"
+                            />
+                        </div>
+                        {/* 4. Moto Park Area m2/unit */}
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">機車車位面積 (m²/車)</label>
+                            <input
+                                type="number"
+                                value={basementInputs?.motorcycle_unit_area ?? ''}
+                                onChange={e => setBasementInput('motorcycle_unit_area', parseFloat(e.target.value))}
+                                onBlur={saveScenario}
+                                className="w-full border p-2 rounded text-center"
+                            />
+                        </div>
+
+                        {/* 5. Legal Parking Count */}
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">法定汽車 (輛)</label>
+                            <input
+                                type="number"
+                                value={basementInputs?.legal_parking ?? ''}
+                                onChange={e => setBasementInput('legal_parking', parseFloat(e.target.value))}
+                                onBlur={saveScenario}
+                                className="w-full border p-2 rounded text-center"
+                            />
+                        </div>
+                        {/* 6. Bonus Parking Count */}
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">獎勵增設 (輛)</label>
+                            <input
+                                type="number"
+                                value={basementInputs?.bonus_parking ?? ''}
+                                onChange={e => setBasementInput('bonus_parking', parseFloat(e.target.value))}
+                                onBlur={saveScenario}
+                                className="w-full border p-2 rounded text-center"
+                            />
+                        </div>
+                        {/* 7. Legal Moto Count */}
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">法定機車 (輛)</label>
+                            <input
+                                type="number"
+                                value={basementInputs?.legal_motorcycle ?? ''}
+                                onChange={e => setBasementInput('legal_motorcycle', parseFloat(e.target.value))}
+                                onBlur={saveScenario}
+                                className="w-full border p-2 rounded text-center"
+                            />
+                        </div>
+                        {/* 8. Total Car Eqv */}
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">總車位需求 (折合汽車)</label>
+                            <div className="w-full bg-gray-50 border p-2 rounded text-center text-gray-500">
+                                {basementCalc.calcTotalParking?.toFixed(1) || 0}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-gray-100 p-4 rounded-lg grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center">
+                            <div className="text-xs text-gray-500 mb-1">預估地下樓層</div>
+                            <div className="text-2xl font-bold text-gray-800">B{basementCalc.estBasementFloors || 0}</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-xs text-gray-500 mb-1">地下單層面積</div>
+                            <div className="text-xl font-bold text-gray-800">{(basementCalc.basementFloorArea || 0).toLocaleString(undefined, { maximumFractionDigits: 1 })}</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-xs text-gray-500 mb-1">地下總樓地板</div>
+                            <div className="text-xl font-bold text-gray-800">{(basementCalc.basementTotalGFA || 0).toLocaleString(undefined, { maximumFractionDigits: 1 })}</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-xs text-gray-500 mb-1">總開挖深度</div>
+                            <div className="text-xl font-bold text-gray-800">{(basementCalc.totalExcavationDepth || 0).toFixed(1)} m</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* Parcel Modal (Simplified) */}
             {
@@ -868,9 +986,8 @@ const ScenarioForm = () => {
                                         activeBonusKey === 'bonus_local' ? '地方都更獎勵明細' :
                                             activeBonusKey === 'bonus_other' ? '防災型都更獎勵明細' :
                                                 activeBonusKey === 'bonus_chloride' ? '高氯離子建物獎勵試算（海砂屋）' :
-                                                    activeBonusKey === 'bonus_tod_reward' ? 'TOD獎勵明細' :
-                                                        activeBonusKey === 'bonus_tod_increment' ? 'TOD增額容積明細' :
-                                                            '獎勵明細 (Detail)'}
+                                                    activeBonusKey === 'bonus_tod' ? 'TOD 容積獎勵明細 (Transit Oriented Development)' :
+                                                        '獎勵明細 (Detail)'}
                                 </h3>
                                 <button onClick={() => setActiveBonusKey(null)} className="text-gray-500 hover:text-gray-700">✕</button>
                             </div>
@@ -1179,152 +1296,306 @@ const ScenarioForm = () => {
                                                 />
                                             </div>
                                         );
+
                                     })()
-                                ) : activeBonusKey === 'bonus_tod_reward' ? (
-                                    /* --- TOD REWARD BONUS MODAL (Fixed & Normalized) --- */
+                                ) : activeBonusKey === 'bonus_tod' ? (
+                                    /* --- TOD BONUS MODAL (Strict PDF / D1-D5) --- */
                                     (() => {
-                                        try {
-                                            // 1. Normalize & Verify
-                                            // We use the full project draft state to ensure we have the latest
-                                            const normalized = normalizeTodDetails({
-                                                tod_increment_bonus_details: draftBonusDetails
-                                            }, TOD_CONFIG);
+                                        // 1. Read
+                                        const details = draftBonusDetails || {};
+                                        const checklist = details.checklist || {};
+                                        const updateChk = (patch) => setBonusDetailsDraft({ checklist: { ...checklist, ...patch } });
 
-                                            // 2. Debug Logging (Requirement A)
-                                            console.log("[TOD_DEBUG] normalized:", normalized);
-                                            console.log("[TOD_DEBUG] raw draft:", draftBonusDetails);
-                                            console.log("[TOD_DEBUG] TOD_CONFIG stations:", TOD_CONFIG?.stations);
+                                        // 2. Constants & Calc
+                                        const stationType = checklist.station_type || 'level2';
+                                        const zoneType = checklist.zone_type || 'general';
 
-                                            // 3. Extract Values (Safe via Normalization)
-                                            const checklist = normalized.checklist; // Normalized always returns valid nums
+                                        // Replicate Calculator Logic for Display (Keep in sync with bonus.js)
+                                        const bv = baseVolume > 0 ? baseVolume : 1; // Avoid div by 0 for display
 
-                                            const stationName = checklist.station_name || '';
-                                            const zoneType = checklist.zone_type || '';
+                                        // D1
+                                        const d1Mode = checklist.d1_mode || 'area';
+                                        const d1A = (safeNum(checklist.d1_area_ground) * 1) + (safeNum(checklist.d1_area_other) * 0.5);
+                                        const d1R = d1Mode === 'area' ? (d1A / bv * 100) : safeNum(checklist.d1_ratio_manual);
 
-                                            // 4. Config Lookup (Safe)
-                                            const stations = TOD_CONFIG?.stations || [];
-                                            const stationCfg = stations.find(s => s.name === stationName);
-                                            const zoneCfg = stationCfg?.zones?.find(z => z.type === zoneType);
-                                            const cap = zoneCfg?.cap || 30;
+                                        // D2
+                                        const d2Mode = checklist.d2_mode || 'area';
+                                        const d2A = safeNum(checklist.d2_area); // x1.0
+                                        const d2R = d2Mode === 'area' ? (d2A / bv * 100) : safeNum(checklist.d2_ratio_manual);
 
-                                            // 5. Calculation
-                                            const d1 = checklist.d1_station_r;
-                                            const d2 = checklist.d2_transfer_r;
-                                            const d3 = checklist.d3_scale_r;
-                                            const d4 = checklist.d4_design_r;
-                                            const d5 = checklist.d5_park_r;
-                                            const sumRate = d1 + d2 + d3 + d4 + d5;
-                                            // fmtFixed is imported or defined locally (we will reuse the one we defined)
+                                        // D3
+                                        const d3Level = checklist.d3_level || 'std';
+                                        const d3Items = checklist.d3_items_count || 3;
+                                        const d3Bldgs = checklist.d3_buildings_count || 1;
+                                        let d3Base = 0;
+                                        if (d3Level === 'std') d3Base = (d3Items >= 5 ? 3 : d3Items == 4 ? 2 : 1);
+                                        else d3Base = (d3Items >= 5 ? 6 : d3Items == 4 ? 4 : 2);
+                                        const d3R = safeNum(checklist.d3_ratio_override) > 0 ? safeNum(checklist.d3_ratio_override) : (d3Base + (d3Bldgs * 0.25));
 
-                                            const finalRate = Math.min(sumRate, cap);
-                                            const isOverCap = sumRate > cap;
+                                        // D4
+                                        const d4Mode = checklist.d4_mode || 'area';
+                                        const d4Donation = safeNum(checklist.d4_donation_area);
+                                        const d4Reward = d4Donation * 2.0; // Rule: Donation * 2
+                                        const d4R = d4Mode === 'area' ? (d4Reward / bv * 100) : safeNum(checklist.d4_ratio_manual);
 
-                                            const updateTOD = (key, val) => {
-                                                setBonusDetailsDraft({ checklist: { ...checklist, [key]: val } });
-                                            };
+                                        // D5 (New: Area Input)
+                                        const d5Mode = checklist.d5_mode || 'area';
+                                        const d5A = safeNum(checklist.d5_area);
+                                        const d5R = d5Mode === 'area' ? (d5A / bv * 100) : safeNum(checklist.d5_ratio_manual);
 
-                                            return (
-                                                <div className="flex flex-col h-full overflow-y-auto pr-2 space-y-4">
-                                                    <div className="bg-blue-50 p-3 rounded border border-blue-200 grid grid-cols-2 gap-4">
+                                        // D5 Price Display
+                                        const d5UnitPrice = safeNum(checklist.d5_unit_price);
+                                        const d5TotalPrice = d5A * d5UnitPrice;
+                                        const d5Payment = d5TotalPrice * 0.5;
+
+                                        // Summary
+                                        const sumR = d1R + d2R + d3R + d4R + d5R;
+                                        const capTable = TOD_CONSTANTS.CAPS[stationType] || TOD_CONSTANTS.CAPS.level2;
+                                        const cap = capTable[zoneType] || 10;
+                                        const finalR = Math.min(sumR, cap);
+                                        const isCapHit = sumR > cap;
+
+                                        return (
+                                            <div className="space-y-4 h-full overflow-y-auto pr-2">
+                                                {/* Header */}
+                                                <div className="bg-blue-50 p-3 rounded border border-blue-200 grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="text-xs font-bold text-gray-500">場站分級</label>
+                                                        <select value={stationType} onChange={e => updateChk({ station_type: e.target.value })} className="w-full border p-1 rounded text-sm">
+                                                            {TOD_CONSTANTS.STATION_TYPES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs font-bold text-gray-500">適用分區</label>
+                                                        <select value={zoneType} onChange={e => updateChk({ zone_type: e.target.value })} className="w-full border p-1 rounded text-sm">
+                                                            {TOD_CONSTANTS.ZONE_TYPES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                {/* D1 */}
+                                                <div className="border rounded p-3">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="font-bold text-sm">{TOD_CONSTANTS.DETAILS.D1.title}</span>
+                                                        <span className="font-mono text-blue-600 font-bold">{fmtFixed(d1R, 2)}%</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 text-xs">
                                                         <div>
-                                                            <label className="block text-sm font-medium text-gray-700">捷運站點 (Station)</label>
-                                                            <select value={stationName} onChange={e => updateTOD('station_name', e.target.value)} className="w-full border p-1 rounded">
-                                                                <option value="">選擇站點</option>
-                                                                {stations.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-                                                            </select>
+                                                            <label>地面層 (x1.0)</label>
+                                                            <input type="number" value={checklist.d1_area_ground || ''} onChange={e => updateChk({ d1_area_ground: e.target.value, d1_mode: 'area' })} className="w-full border p-1" placeholder="m²" />
                                                         </div>
                                                         <div>
-                                                            <label className="block text-sm font-medium text-gray-700">範圍 (Zone)</label>
-                                                            <select value={zoneType} onChange={e => updateTOD('zone_type', e.target.value)} className="w-full border p-1 rounded">
-                                                                <option value="">選擇範圍</option>
-                                                                {stationCfg?.zones?.map(z => <option key={z.type} value={z.type}>{z.type} (Cap: {z.cap}%)</option>)}
-                                                            </select>
+                                                            <label>其他層 (x0.5)</label>
+                                                            <input type="number" value={checklist.d1_area_other || ''} onChange={e => updateChk({ d1_area_other: e.target.value, d1_mode: 'area' })} className="w-full border p-1" placeholder="m²" />
                                                         </div>
                                                     </div>
+                                                </div>
 
-                                                    <div className="space-y-3">
-                                                        {[
-                                                            { k: 'd1_station_r', label: 'D1 站點貢獻', max: 10 },
-                                                            { k: 'd2_transfer_r', label: 'D2 轉乘機能', max: 5 },
-                                                            { k: 'd3_scale_r', label: 'D3 規模獎勵', max: 10 },
-                                                            { k: 'd4_design_r', label: 'D4 設計獎勵', max: 10 },
-                                                            { k: 'd5_park_r', label: 'D5 公益/停車', max: 15 },
-                                                        ].map(f => (
-                                                            <div key={f.k} className="flex justify-between items-center border-b pb-1">
-                                                                <label className="text-sm text-gray-700">{f.label}</label>
-                                                                <div className="flex items-center gap-2">
-                                                                    <input
-                                                                        type="number"
-                                                                        value={checklist[f.k] || ''}
-                                                                        onChange={e => updateTOD(f.k, parseFloat(e.target.value) || 0)}
-                                                                        className="w-20 border rounded px-1 text-right"
-                                                                        placeholder="0"
-                                                                    />
-                                                                    <span className="text-xs text-gray-500 w-8">Max {f.max}</span>
-                                                                </div>
+                                                {/* D2 */}
+                                                <div className="border rounded p-3">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="font-bold text-sm">{TOD_CONSTANTS.DETAILS.D2.title}</span>
+                                                        <span className="font-mono text-blue-600 font-bold">{fmtFixed(d2R, 2)}%</span>
+                                                    </div>
+                                                    <div className="text-xs flex items-center gap-2">
+                                                        <span>實設面積:</span>
+                                                        <input type="number" value={checklist.d2_area || ''} onChange={e => updateChk({ d2_area: e.target.value, d2_mode: 'area' })} className="w-24 border p-1" placeholder="m²" />
+                                                    </div>
+                                                </div>
+
+                                                {/* D3 */}
+                                                <div className="border rounded p-3">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="font-bold text-sm">{TOD_CONSTANTS.DETAILS.D3.title}</span>
+                                                        <span className="font-mono text-blue-600 font-bold">{fmtFixed(d3R, 2)}%</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                                        <select value={d3Level} onChange={e => updateChk({ d3_level: e.target.value })} className="border p-1">
+                                                            {TOD_CONSTANTS.D3_LEVELS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                                        </select>
+                                                        <select value={d3Items} onChange={e => updateChk({ d3_items_count: parseInt(e.target.value) })} className="border p-1">
+                                                            <option value="3">符合3項</option>
+                                                            <option value="4">符合4項</option>
+                                                            <option value="5">符合5項</option>
+                                                        </select>
+                                                        <div className="col-span-2 flex items-center gap-2">
+                                                            <span>棟數 (+0.25%):</span>
+                                                            <input type="number" value={d3Bldgs} onChange={e => updateChk({ d3_buildings_count: e.target.value })} className="w-16 border p-1" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* D4 */}
+                                                <div className="border rounded p-3">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="font-bold text-sm">{TOD_CONSTANTS.DETAILS.D4.title}</span>
+                                                        <span className="font-mono text-blue-600 font-bold">{fmtFixed(d4R, 2)}%</span>
+                                                    </div>
+                                                    <p className="text-[10px] text-gray-400 mb-1">捐贈面積 x 2 = 獎勵面積 (獎勵佔50%回饋)</p>
+                                                    <div className="text-xs flex items-center gap-2">
+                                                        <span>捐贈面積:</span>
+                                                        <input type="number" value={checklist.d4_donation_area || ''} onChange={e => updateChk({ d4_donation_area: e.target.value, d4_mode: 'area' })} className="w-24 border p-1" placeholder="m²" />
+                                                        <span className="text-gray-500">=&gt; 取得獎勵: {fmtFixed(d4Reward, 1)} m²</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* D5 */}
+                                                <div className="border rounded p-3 bg-yellow-50">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="font-bold text-sm">{TOD_CONSTANTS.DETAILS.D5.title}</span>
+                                                        <span className="font-mono text-blue-600 font-bold">{fmtFixed(d5R, 2)}%</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                                        <div className="col-span-2">
+                                                            <label className="block mb-1">欲取得獎勵容積 (Bonus Area)</label>
+                                                            <div className="flex items-center gap-2">
+                                                                <input type="number" value={checklist.d5_area || ''} onChange={e => updateChk({ d5_area: e.target.value, d5_mode: 'area' })} className="w-full border p-1 bg-white" placeholder="m²" />
                                                             </div>
-                                                        ))}
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-gray-500">估價單價 (元/m²) [非必填]</label>
+                                                            <input type="number" value={d5UnitPrice || ''} onChange={e => updateChk({ d5_unit_price: e.target.value })} className="w-full border p-1" placeholder="$ Price" />
+                                                        </div>
+                                                        <div className="flex flex-col justify-end text-right">
+                                                            <span className="text-gray-500">預估代金 (50%)</span>
+                                                            <span className="font-bold text-gray-700">${d5Payment.toLocaleString()}</span>
+                                                        </div>
                                                     </div>
+                                                </div>
 
-                                                    <div className="flex justify-end gap-2 text-sm text-gray-600">
-                                                        <span>累計: {fmtFixed(sumRate, 2)}%</span>
-                                                        <span className={isOverCap ? 'text-red-500 font-bold' : ''}>
-                                                            (上限: {cap}%)
+                                                {/* Footer */}
+                                                <div className="bg-gray-100 p-2 rounded flex justify-between font-bold text-sm">
+                                                    <span>合計: {fmtFixed(sumR, 2)}%</span>
+                                                    <span className={isCapHit ? 'text-red-500' : 'text-green-600'}>
+                                                        上限: {cap}% {isCapHit && '(已達上限)'}
+                                                    </span>
+                                                </div>
+
+                                                <DetailModalFooter
+                                                    onCancel={() => { discardDraft(); setActiveBonusKey(null); }}
+                                                    onApply={() => {
+                                                        setBonusData('bonus_tod', finalR);
+                                                        commitBonusDetails('bonus_tod');
+                                                        setActiveBonusKey(null);
+                                                    }}
+                                                    onSave={() => {
+                                                        setBonusData('bonus_tod', finalR);
+                                                        commitBonusDetails('bonus_tod');
+                                                        saveScenario();
+                                                        setActiveBonusKey(null);
+                                                    }}
+                                                    isPass={true}
+                                                    calculatedRate={finalR}
+                                                />
+                                            </div>
+                                        );
+                                    })()
+                                ) : activeBonusKey === 'bonus_soil_mgmt' ? (
+                                    /* --- SOIL 80-2 MODAL --- */
+                                    (() => {
+                                        // 1. Read Draft
+                                        const details = draftBonusDetails || {};
+                                        const checklist = details.checklist || {};
+                                        const updateChk = (patch) => setBonusDetailsDraft({ checklist: { ...checklist, ...patch } });
+
+                                        // 2. Constants
+                                        const siteAreaM2 = computedResult?.siteArea || 0;
+                                        const areaOk = siteAreaM2 >= 2000;
+
+                                        // 80-2 Logic: Cap 30%
+                                        // The user inputs the Rate in the Main Table. We just display status here.
+                                        // Effective Rate is handled by calculateBonus.
+                                        // Just need to save metadata.
+
+                                        return (
+                                            <div className="space-y-6 h-full overflow-y-auto pr-2">
+                                                <div className={`p-4 rounded border ${areaOk ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                                                    <h4 className={`font-bold mb-2 ${areaOk ? 'text-green-800' : 'text-red-800'}`}>
+                                                        條件檢核 (Eligibility)
+                                                    </h4>
+                                                    <div className="flex justify-between items-center bg-white p-2 rounded border border-gray-100 mb-2">
+                                                        <span className="text-sm font-medium text-gray-600">基地規模 Site Area</span>
+                                                        <span className={`font-mono font-bold ${areaOk ? 'text-green-600' : 'text-red-500'}`}>
+                                                            {siteAreaM2.toLocaleString()} m²
                                                         </span>
                                                     </div>
+                                                    <div className="text-sm">
+                                                        {areaOk ? (
+                                                            <span className="flex items-center gap-2 text-green-700">
+                                                                <span>✔</span> 符合大於 2,000 m² 之規定
+                                                            </span>
+                                                        ) : (
+                                                            <span className="flex items-center gap-2 text-red-700">
+                                                                <span>✘</span> 未達 2,000 m² (不予獎勵)
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
 
-                                                    <DetailModalFooter
-                                                        onCancel={() => {
-                                                            discardDraft();
-                                                            setActiveBonusKey(null);
-                                                        }}
-                                                        onApply={() => {
-                                                            setBonusData('bonus_tod_reward', finalRate);
-                                                            commitBonusDetails('bonus_tod_reward');
-                                                            setActiveBonusKey(null);
-                                                        }}
-                                                        onSave={() => {
-                                                            setBonusData('bonus_tod_reward', finalRate);
-                                                            commitBonusDetails('bonus_tod_reward');
-                                                            saveScenario();
-                                                            setActiveBonusKey(null);
-                                                        }}
-                                                        isPass={!!stationName && !!zoneType}
-                                                        calculatedRate={finalRate}
-                                                        cap={cap}
-                                                        isOverCap={isOverCap}
-                                                    />
+                                                <div className="bg-blue-50 p-4 rounded border border-blue-200">
+                                                    <h4 className="font-bold text-blue-800 mb-3">回饋設定 (Feedback)</h4>
+
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <label className="block text-xs font-bold text-gray-500 mb-1">回饋方式</label>
+                                                            <select
+                                                                value={checklist.feedback_method || 'floor_area'}
+                                                                onChange={e => updateChk({ feedback_method: e.target.value })}
+                                                                className="w-full border p-2 rounded text-sm"
+                                                            >
+                                                                <option value="floor_area">捐贈樓地板面積 (Floor Area)</option>
+                                                                <option value="monetary">繳納代金 (Monetary)</option>
+                                                            </select>
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-xs font-bold text-gray-500 mb-1">備註說明 (Note)</label>
+                                                            <input
+                                                                type="text"
+                                                                value={checklist.note || ''}
+                                                                onChange={e => updateChk({ note: e.target.value })}
+                                                                className="w-full border p-2 rounded text-sm"
+                                                                placeholder="Optional note..."
+                                                            />
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            );
-                                        } catch (error) {
-                                            console.error("[SafeRender] TOD Modal Error:", error, {
-                                                activeKey: activeBonusKey,
-                                                draft: draftBonusDetails
-                                            });
-                                            return (
-                                                <div className="p-6 text-center text-red-500">
-                                                    <p className="font-bold">Data Display Error</p>
-                                                    <p className="text-sm text-gray-400 mt-2">請聯繫管理員 (Ref: {error.message})</p>
-                                                    <button
-                                                        onClick={() => setActiveBonusKey(null)}
-                                                        className="mt-4 px-4 py-2 bg-gray-200 rounded text-gray-600 hover:bg-gray-300"
-                                                    >
-                                                        關閉 (Close)
-                                                    </button>
+
+                                                <div className="bg-gray-100 p-3 rounded text-xs text-gray-600">
+                                                    <p className="font-bold mb-1">規則說明:</p>
+                                                    <ul className="list-disc pl-4 space-y-1">
+                                                        <li>基地面積需達 2,000 m² 以上。</li>
+                                                        <li>獎勵上限為 30% (Effective Cap)。</li>
+                                                        <li>若輸入 > 30%，實際計算將自動取 30%。</li>
+                                                    </ul>
                                                 </div>
-                                            );
-                                        }
+
+                                                <DetailModalFooter
+                                                    onCancel={() => { discardDraft(); setActiveBonusKey(null); }}
+                                                    onApply={() => {
+                                                        // Just commit checklist details. Don't touch rate (user controls rate in table).
+                                                        commitBonusDetails('bonus_soil_mgmt');
+                                                        setActiveBonusKey(null);
+                                                    }}
+                                                    onSave={() => {
+                                                        commitBonusDetails('bonus_soil_mgmt');
+                                                        saveScenario();
+                                                        setActiveBonusKey(null);
+                                                    }}
+                                                    isPass={areaOk}
+                                                    calculatedRate={bonusData['bonus_soil_mgmt'] || 0} // Just display current
+                                                />
+                                            </div>
+                                        );
                                     })()
                                 ) : (
-                                    /* --- GENERIC MODAL (Dynamic Form) Central / Local / TOD Increment / Soil --- */
+                                    /* --- GENERIC MODAL (Dynamic Form) Central / Local / Soil --- */
                                     (() => {
                                         try {
                                             // 1. Determine Bonus Items Config
                                             let configItems = {};
                                             if (activeBonusKey === 'bonus_central') configItems = CENTRAL_BONUS_ITEMS;
                                             else if (activeBonusKey === 'bonus_local') configItems = LOCAL_BONUS_ITEMS;
-                                            else if (activeBonusKey === 'bonus_tod_reward') configItems = TOD_BONUS_ITEMS;
-                                            else if (activeBonusKey === 'bonus_tod_increment') configItems = TOD_INCREMENT_ITEMS;
 
                                             // Empty State Check
                                             if (!configItems || Object.keys(configItems).length === 0) {
@@ -1437,7 +1708,7 @@ const ScenarioForm = () => {
                     </div>
                 )
             }
-        </div>
+        </div >
     );
 };
 

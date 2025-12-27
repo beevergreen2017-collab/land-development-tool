@@ -75,8 +75,6 @@ const createBonus = (overrides = {}) => ({
     bonus_local: 0.0,
     bonus_other: 0.0,
     bonus_chloride: 0.0,
-    bonus_tod_reward: 0.0,
-    bonus_tod_increment: 0.0,
     bonus_soil_mgmt: 0.0,
     bonus_tod: 0.0,
     bonus_public_exemption: 0.0,
@@ -127,8 +125,7 @@ describe('computeScenario Regression Tests', () => {
                 excavation_rate: 85.0
             }),
             bonus: createBonus({
-                bonus_tod_reward: 15.0,
-                bonus_tod_increment: 10.0,
+                bonus_tod: 25.0, // Consolidated TOD
                 bonus_cap: 150.0 // Higher Cap
             })
         };
@@ -159,4 +156,46 @@ describe('computeScenario Regression Tests', () => {
         const result = computeScenario(input);
         expect(result).toMatchSnapshot();
     });
+    // 4. Mutex Removal Verification
+    // Confirm that Disaster Special Mode does NOT lock Central/Local
+    it('Scenario 4: Mutex Removal Verification', () => {
+        const input = {
+            project: createProject({ base_far: 200 }),
+            massing: createMassing(),
+            basement: createBasement(),
+            bonus: createBonus({
+                bonus_other: 20.0, // Disaster Risk
+                disasterBonusDetails: {
+                    enabled: true,
+                    checklist: {
+                        exclusivityMode: 'special', // Previously would trigger lock
+                        is_plan_approved: true,
+                        base_area_m2: 1500,
+                        has_risk_assessment: true // Ensure eligibility
+                    }
+                },
+                bonus_central: 10.0, // Should NOT be locked
+                bonus_local: 5.0     // Should NOT be locked
+            })
+        };
+
+        const result = computeScenario(input);
+
+        // Assertions
+        expect(result.bonus.lockedItems || []).toEqual([]); // Must be empty
+        // Check Central active
+        const central = result.bonus.items.find(i => i.key === 'bonus_central');
+        expect(central.ratio).toBe(10.0);
+        // Check Local active
+        const local = result.bonus.items.find(i => i.key === 'bonus_local');
+        expect(local.ratio).toBe(5.0);
+        // Check Disaster active
+        const disaster = result.bonus.items.find(i => i.key === 'bonus_other');
+        expect(disaster.ratio).toBe(20.0);
+
+        // Total should include all
+        // 20 + 10 + 5 = 35
+        expect(result.bonus.applicationTotal).toBeCloseTo(35.0);
+    });
 });
+
