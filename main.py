@@ -1,4 +1,8 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
+import traceback
+import sys
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
@@ -10,9 +14,43 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# Auto-patch DB on startup to ensure schema consistency
+from patch_db import patch_db
+
+@app.on_event("startup")
+def on_startup():
+    patch_db()
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
+    print("CAUGHT SQLALCHEMY ERROR:", file=sys.stderr)
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error_type": exc.__class__.__name__,
+            "message": str(exc),
+            "hint": "Check database connection or query syntax."
+        },
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    print(f"CAUGHT UNHANDLED EXCEPTION ({exc.__class__.__name__}):", file=sys.stderr)
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error_type": exc.__class__.__name__,
+            "message": str(exc),
+            "hint": "Internal Server Error. Check backend logs for traceback."
+        },
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For development, allow all. In production, specify frontend URL.
+    # Fixed CORS origins for development
+    allow_origins=["http://localhost:5173", "http://localhost:5174"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,12 +74,66 @@ def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)
     db_project.total_area_ping = 0.0
     return db_project
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 @app.get("/projects/", response_model=List[schemas.Project])
-def read_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    projects = db.query(models.Project).offset(skip).limit(limit).all()
-    for p in projects:
-        p.total_area_ping = p.total_area_m2 * 0.3025
-    return projects
+def read_projects(
+    skip: int = 0, 
+    limit: int = 100, 
+    search: str = None, 
+    include_archived: bool = False,
+    sort: str = "recent_updated",
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(models.Project)
+
+        # 1. Search (Name)
+        if search:
+            query = query.filter(models.Project.name.ilike(f"%{search}%"))
+
+        # 2. Archive Filter
+        if not include_archived:
+            query = query.filter(models.Project.archived_at == None)
+
+        # 3. Sorting
+        # 3. Sorting
+        from sqlalchemy import func
+        
+        if sort == "recent_updated":
+            # updated_at desc (fallback to created_at), then created_at desc
+            query = query.order_by(func.coalesce(models.Project.updated_at, models.Project.created_at).desc(), models.Project.created_at.desc())
+        elif sort == "recent_opened":
+            # last_opened_at desc (nulls last), then updated_at desc
+            query = query.order_by(models.Project.last_opened_at.desc(), func.coalesce(models.Project.updated_at, models.Project.created_at).desc())
+        elif sort == "name_asc":
+            query = query.order_by(models.Project.name.asc())
+        elif sort == "created_desc":
+            query = query.order_by(models.Project.created_at.desc())
+        # Add Pinned Logic? No, usually Pinned is UI logical partition, but maybe we want pinned first?
+        # User requirement says "Sort" dropdown. Pinned is partition 'a. Pinned'. 
+        # Usually backend just sorts by criterion, frontend partitions. 
+        # But if we paginate, we might need pinned first. 
+        # MVP: Frontend partitions. Backend just provides sorted list. 
+        # "Sorting... in local is fine". So this backend sort is extra credit but good.
+
+        projects = query.offset(skip).limit(limit).all()
+        for p in projects:
+            p.total_area_ping = (p.total_area_m2 or 0.0) * 0.3025
+        return projects
+    except Exception as e:
+        print(f"Error in read_projects: {e}", file=sys.stderr)
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error_type": e.__class__.__name__,
+                "message": str(e),
+                "hint": "Database or calculation error in /projects/"
+            }
+        )
 
 @app.get("/projects/{project_id}", response_model=schemas.Project)
 def read_project(project_id: int, db: Session = Depends(get_db)):
@@ -70,6 +162,21 @@ def update_project(project_id: int, project_update: schemas.ProjectUpdate, db: S
     db.refresh(db_project)
     db_project.total_area_ping = db_project.total_area_m2 * 0.3025
     return db_project
+
+@app.delete("/projects/{project_id}")
+def delete_project(project_id: int, db: Session = Depends(get_db)):
+    db_project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if db_project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Delete associated land parcels first (cascade delete)
+    db.query(models.LandParcel).filter(models.LandParcel.project_id == project_id).delete()
+    
+    # Delete the project
+    db.delete(db_project)
+    db.commit()
+    return {"message": "Project deleted successfully", "id": project_id}
+
 
 @app.post("/projects/{project_id}/parcels/", response_model=schemas.LandParcel)
 def create_land_parcel(project_id: int, land_parcel: schemas.LandParcelCreate, db: Session = Depends(get_db)):

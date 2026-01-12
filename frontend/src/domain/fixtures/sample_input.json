@@ -1,0 +1,47 @@
+{
+    "project": {
+        "name": "Fixture Project",
+        "land_parcels": [
+            {
+                "district": "萬華區",
+                "section_name": "Test Section",
+                "lot_number": "1",
+                "area_m2": 1000,
+                "zoning_type": "住三",
+                "legal_coverage_rate": 45,
+                "legal_floor_area_rate": 225
+            }
+        ]
+    },
+    "bonus": {
+        "bonus_central": 0,
+        "bonus_local": 0,
+        "bonus_other": 0,
+        "bonus_chloride": 0,
+        "bonus_tod_reward": 0,
+        "bonus_tod_increment": 0,
+        "bonus_soil_mgmt": 0,
+        "bonus_public_exemption": 0,
+        "bonus_cap": 100
+    },
+    "massing": {
+        "design_coverage": 45,
+        "exemption_coef": 1.15,
+        "public_ratio": 33,
+        "me_rate": 15,
+        "stair_rate": 10,
+        "balcony_rate": 5,
+        "residential_rate": 60,
+        "commercial_rate": 30,
+        "agency_rate": 10
+    },
+    "basement": {
+        "legal_parking": 0,
+        "bonus_parking": 0,
+        "excavation_rate": 70,
+        "parking_space_area": 40,
+        "floor_height": 3.3,
+        "legal_motorcycle": 0,
+        "motorcycle_unit_area": 4
+    }
+}
