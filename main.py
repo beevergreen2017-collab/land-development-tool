@@ -47,10 +47,18 @@ async def general_exception_handler(request: Request, exc: Exception):
         },
     )
 
+# CORS Configuration
+origins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:8000",
+    "http://localhost:8001",
+    "https://land-development-tool.vercel.app",  # Vercel production URL
+]
+
 app.add_middleware(
     CORSMiddleware,
-    # Fixed CORS origins for development
-    allow_origins=["http://localhost:5173", "http://localhost:5174"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
