@@ -1,0 +1,8 @@
+{
+    "rewrites": [
+        {
+            "source": "/api/:match*",
+            "destination": "https://land-development-tool.onrender.com/:match*"
+        }
+    ]
+}
