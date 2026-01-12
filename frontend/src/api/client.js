@@ -1,11 +1,12 @@
 import axios from 'axios';
 
-const envApiUrl = import.meta.env.VITE_API_BASE_URL;
-// Default to /api for proxy usage, or fallback to direct URL if needed (but proxy is preferred)
-export const API_URL = envApiUrl || '/api';
+// Use Render URL in production, Vite proxy in development
+const baseURL = import.meta.env.PROD
+    ? "https://land-development-tool.onrender.com"
+    : "/api";
 
 const apiClient = axios.create({
-    baseURL: API_URL,
+    baseURL: baseURL,
     headers: {
         'Content-Type': 'application/json',
     },
