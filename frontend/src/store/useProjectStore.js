@@ -133,6 +133,27 @@ const useProjectStore = create(
                 }
             },
 
+            deleteProject: async (id) => {
+                try {
+                    await ProjectAPI.deleteProject(id);
+                    // Remove from local state
+                    set(state => {
+                        const newProjects = state.projects.filter(p => p.id !== id);
+                        // Clear selectedProject if it was the deleted one
+                        const newSelectedProject = state.selectedProject?.id === id ? null : state.selectedProject;
+                        return {
+                            projects: newProjects,
+                            selectedProject: newSelectedProject
+                        };
+                    });
+                } catch (error) {
+                    console.error('Failed to delete project:', error);
+                    // Refresh list on error to ensure consistency
+                    get().fetchProjects();
+                }
+            },
+
+
             selectProject: async (project) => {
                 // When selecting, we also fetch details to ensure we have latest parcels
                 try {

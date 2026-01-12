@@ -4,7 +4,7 @@ import useProjectStore from '../store/useProjectStore';
 
 const ProjectForm = () => {
     const {
-        projects, selectedProject, fetchProjects, createProject, selectProject,
+        projects, selectedProject, fetchProjects, createProject, selectProject, deleteProject,
         projectSearch, setProjectSearch,
         projectSort, setProjectSort,
         showArchived, toggleShowArchived,
@@ -140,6 +140,19 @@ const ProjectForm = () => {
                                 <Archive size={14} /> Archive
                             </button>
                         )}
+
+                        <div className="border-t border-gray-200 my-1"></div>
+
+                        <button onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm('確定要刪除此專案嗎？')) {
+                                deleteProject(project.id);
+                            }
+                            setMenuOpenId(null);
+                        }}
+                            className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2">
+                            <Trash2 size={14} /> Delete
+                        </button>
                     </div>
                 )}
             </div>

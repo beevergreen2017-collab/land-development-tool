@@ -79,11 +79,48 @@ def health_check():
     return {"status": "ok"}
 
 @app.get("/projects/", response_model=List[schemas.Project])
-def read_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_projects(
+    skip: int = 0, 
+    limit: int = 100, 
+    search: str = None, 
+    include_archived: bool = False,
+    sort: str = "recent_updated",
+    db: Session = Depends(get_db)
+):
     try:
-        projects = db.query(models.Project).offset(skip).limit(limit).all()
+        query = db.query(models.Project)
+
+        # 1. Search (Name)
+        if search:
+            query = query.filter(models.Project.name.ilike(f"%{search}%"))
+
+        # 2. Archive Filter
+        if not include_archived:
+            query = query.filter(models.Project.archived_at == None)
+
+        # 3. Sorting
+        # 3. Sorting
+        from sqlalchemy import func
+        
+        if sort == "recent_updated":
+            # updated_at desc (fallback to created_at), then created_at desc
+            query = query.order_by(func.coalesce(models.Project.updated_at, models.Project.created_at).desc(), models.Project.created_at.desc())
+        elif sort == "recent_opened":
+            # last_opened_at desc (nulls last), then updated_at desc
+            query = query.order_by(models.Project.last_opened_at.desc(), func.coalesce(models.Project.updated_at, models.Project.created_at).desc())
+        elif sort == "name_asc":
+            query = query.order_by(models.Project.name.asc())
+        elif sort == "created_desc":
+            query = query.order_by(models.Project.created_at.desc())
+        # Add Pinned Logic? No, usually Pinned is UI logical partition, but maybe we want pinned first?
+        # User requirement says "Sort" dropdown. Pinned is partition 'a. Pinned'. 
+        # Usually backend just sorts by criterion, frontend partitions. 
+        # But if we paginate, we might need pinned first. 
+        # MVP: Frontend partitions. Backend just provides sorted list. 
+        # "Sorting... in local is fine". So this backend sort is extra credit but good.
+
+        projects = query.offset(skip).limit(limit).all()
         for p in projects:
-            # Safe calculation handling None values
             p.total_area_ping = (p.total_area_m2 or 0.0) * 0.3025
         return projects
     except Exception as e:
@@ -125,6 +162,21 @@ def update_project(project_id: int, project_update: schemas.ProjectUpdate, db: S
     db.refresh(db_project)
     db_project.total_area_ping = db_project.total_area_m2 * 0.3025
     return db_project
+
+@app.delete("/projects/{project_id}")
+def delete_project(project_id: int, db: Session = Depends(get_db)):
+    db_project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if db_project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Delete associated land parcels first (cascade delete)
+    db.query(models.LandParcel).filter(models.LandParcel.project_id == project_id).delete()
+    
+    # Delete the project
+    db.delete(db_project)
+    db.commit()
+    return {"message": "Project deleted successfully", "id": project_id}
+
 
 @app.post("/projects/{project_id}/parcels/", response_model=schemas.LandParcel)
 def create_land_parcel(project_id: int, land_parcel: schemas.LandParcelCreate, db: Session = Depends(get_db)):

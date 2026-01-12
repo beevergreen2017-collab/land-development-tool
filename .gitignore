@@ -43,7 +43,8 @@ Thumbs.db
 # Local one-off scripts / dumps (do not commit)
 check_db_columns.py
 migrate_v2.py
-patch_*.py
+migrate_v2.py
+# patch_*.py removed to allow patch_db.py
 patch_full.py
 projects.json
 tree.txt

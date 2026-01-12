@@ -19,3 +19,8 @@ export const updateProject = async (id, data) => {
     const response = await apiClient.put(`/projects/${id}`, data);
     return response.data;
 };
+
+export const deleteProject = async (id) => {
+    const response = await apiClient.delete(`/projects/${id}`);
+    return response.data;
+};

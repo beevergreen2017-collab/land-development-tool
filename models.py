@@ -14,6 +14,12 @@ class Project(Base):
     bcr = Column(Float, default=0.0)  # Building Coverage Ratio Cap (%)
     far = Column(Float, default=0.0)  # Floor Area Ratio Cap (%)
     
+    # Project Management Fields
+    is_pinned = Column(Integer, default=0) # Boolean 0/1
+    archived_at = Column(DateTime(timezone=True), nullable=True)
+    last_opened_at = Column(DateTime(timezone=True), nullable=True)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
     # Volume Bonus Fields
     bonus_central = Column(Float, default=30.0)
     bonus_local = Column(Float, default=20.0)

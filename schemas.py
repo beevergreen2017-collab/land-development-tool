@@ -58,6 +58,9 @@ class ProjectCreate(ProjectBase):
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
+    is_pinned: Optional[int] = None # 0 or 1
+    archived_at: Optional[datetime] = None
+    last_opened_at: Optional[datetime] = None
     bcr: Optional[float] = None
     far: Optional[float] = None
     bonus_central: Optional[float] = None
@@ -100,6 +103,10 @@ class ProjectUpdate(BaseModel):
 
 class Project(ProjectBase):
     id: int
+    is_pinned: int
+    archived_at: Optional[datetime] = None
+    last_opened_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     total_area_m2: float
     total_area_ping: float  # Calculated field
     bcr: float
