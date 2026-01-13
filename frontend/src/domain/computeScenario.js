@@ -139,30 +139,33 @@ export const computeScenario = (input) => {
     const massingResult = calculateMassing(baseVolume, bonusResult.totalAllowedRate, massing, siteArea);
 
     // 5. Basement Calculation
-    // Auto-calculate legal parking if not manually specified (0)
-    if ((basement.legal_parking || 0) === 0) {
-        // Simple heuristic based on GFA (approximate)
-        // Note: For precise calc, we need usage split in GFA. 
-        // Using massingResult.usageAreas
-        // Residential: 1 space / 120m2, Commercial: 1/100, Agency: 1/140 (approx)
-        const { residential, commercial, agency } = massingResult.usageAreas;
-        // Re-calculate GFA for usage types based on GFA_NoBalcony (which usageAreas are derived from)
+    // Always auto-calculate parking based on current GFA and usage
+    const { residential, commercial, agency } = massingResult.usageAreas;
 
-        basement.legal_parking = Math.ceil(
-            (residential / 150) + (commercial / 100) + (agency / 100)
-        ) || 1; // Fallback to 1 to avoid /0 for layout
-    }
+    // Calculate auto parking values (always computed for real-time updates)
+    const autoParkingCar = Math.ceil(
+        (residential / 150) + (commercial / 100) + (agency / 100)
+    ) || 1; // Fallback to 1 to avoid /0 for layout
 
-    // Also auto-calc motorcycle
-    if ((basement.legal_motorcycle || 0) === 0) {
-        basement.legal_motorcycle = Math.ceil(massingResult.massingGFA_NoBalcony / 100) || 1;
-    }
+    const autoParkingMotorcycle = Math.ceil(massingResult.massingGFA_NoBalcony / 100) || 1;
+
+    // Use manual input if provided (non-zero), otherwise use auto-calculated values
+    // This ensures parking updates when GFA changes, unless user explicitly set a value
+    basement.legal_parking = (basement.legal_parking && basement.legal_parking > 0)
+        ? basement.legal_parking
+        : autoParkingCar;
+
+    basement.legal_motorcycle = (basement.legal_motorcycle && basement.legal_motorcycle > 0)
+        ? basement.legal_motorcycle
+        : autoParkingMotorcycle;
 
     const basementResult = calculateBasement(siteArea, basement);
 
-    // Include the calculated parking values in the result
+    // Include both the active values and auto-calculated values in the result
     basementResult.legal_parking = basement.legal_parking;
     basementResult.legal_motorcycle = basement.legal_motorcycle;
+    basementResult.auto_parking_car = autoParkingCar;
+    basementResult.auto_parking_motorcycle = autoParkingMotorcycle;
 
     // 5.5 Site Statistics (Integrated Domain Logic)
     // const allParcels declared above

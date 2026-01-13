@@ -733,13 +733,16 @@ const ScenarioForm = () => {
 
                         {/* 5. Legal Parking Count */}
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">法定汽車 (輛)</label>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">法定汽車 (輛) <span className="text-xs text-gray-400">(留空=自動)</span></label>
                             <input
                                 type="number"
                                 value={basementInputs?.legal_parking || basementCalc.legal_parking || ''}
-                                onChange={e => setBasementInput('legal_parking', parseFloat(e.target.value))}
+                                onChange={e => {
+                                    const val = parseFloat(e.target.value);
+                                    setBasementInput('legal_parking', (val && val > 0) ? val : 0);
+                                }}
                                 onBlur={saveScenario}
-                                placeholder={`自動計算: ${basementCalc.legal_parking || 0}`}
+                                placeholder={`自動: ${basementCalc.auto_parking_car || basementCalc.legal_parking || 0}`}
                                 className="w-full border p-2 rounded text-center"
                             />
                         </div>
@@ -756,13 +759,16 @@ const ScenarioForm = () => {
                         </div>
                         {/* 7. Legal Moto Count */}
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">法定機車 (輛)</label>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">法定機車 (輛) <span className="text-xs text-gray-400">(留空=自動)</span></label>
                             <input
                                 type="number"
                                 value={basementInputs?.legal_motorcycle || basementCalc.legal_motorcycle || ''}
-                                onChange={e => setBasementInput('legal_motorcycle', parseFloat(e.target.value))}
+                                onChange={e => {
+                                    const val = parseFloat(e.target.value);
+                                    setBasementInput('legal_motorcycle', (val && val > 0) ? val : 0);
+                                }}
                                 onBlur={saveScenario}
-                                placeholder={`自動計算: ${basementCalc.legal_motorcycle || 0}`}
+                                placeholder={`自動: ${basementCalc.auto_parking_motorcycle || basementCalc.legal_motorcycle || 0}`}
                                 className="w-full border p-2 rounded text-center"
                             />
                         </div>
