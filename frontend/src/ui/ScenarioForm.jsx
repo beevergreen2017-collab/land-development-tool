@@ -736,9 +736,10 @@ const ScenarioForm = () => {
                             <label className="block text-sm font-bold text-gray-700 mb-2">法定汽車 (輛)</label>
                             <input
                                 type="number"
-                                value={basementInputs?.legal_parking ?? ''}
+                                value={basementInputs?.legal_parking || basementCalc.legal_parking || ''}
                                 onChange={e => setBasementInput('legal_parking', parseFloat(e.target.value))}
                                 onBlur={saveScenario}
+                                placeholder={`自動計算: ${basementCalc.legal_parking || 0}`}
                                 className="w-full border p-2 rounded text-center"
                             />
                         </div>
@@ -758,9 +759,10 @@ const ScenarioForm = () => {
                             <label className="block text-sm font-bold text-gray-700 mb-2">法定機車 (輛)</label>
                             <input
                                 type="number"
-                                value={basementInputs?.legal_motorcycle ?? ''}
+                                value={basementInputs?.legal_motorcycle || basementCalc.legal_motorcycle || ''}
                                 onChange={e => setBasementInput('legal_motorcycle', parseFloat(e.target.value))}
                                 onBlur={saveScenario}
+                                placeholder={`自動計算: ${basementCalc.legal_motorcycle || 0}`}
                                 className="w-full border p-2 rounded text-center"
                             />
                         </div>
