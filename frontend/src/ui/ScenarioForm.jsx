@@ -81,7 +81,7 @@ const ScenarioForm = () => {
     const [newParcel, setNewParcel] = useState({
         district: '萬華區', section_name: '', lot_number: '', area_m2: '', zoning_type: '',
         announced_value: '', legal_coverage_rate: '45', legal_floor_area_rate: '225', road_width: '',
-        tenure: '未確認', is_verified: false, includeInSite: true
+        ownershipStatus: 'unknown', is_verified: false, includeInSite: true
     });
 
     // ... (Parcel Handlers)
