@@ -11,7 +11,7 @@ export const fetchLandInfo = async (district, sectionName, lotNumber) => {
     return response.data;
 };
 
-export const addParcel = async (projectId, parcelData) => {
+export const createParcel = async (projectId, parcelData) => {
     const payload = {
         ...parcelData,
         area_m2: parseFloat(parcelData.area_m2),
