@@ -160,6 +160,10 @@ export const computeScenario = (input) => {
 
     const basementResult = calculateBasement(siteArea, basement);
 
+    // Include the calculated parking values in the result
+    basementResult.legal_parking = basement.legal_parking;
+    basementResult.legal_motorcycle = basement.legal_motorcycle;
+
     // 5.5 Site Statistics (Integrated Domain Logic)
     // const allParcels declared above
     const parcelStats = [];
