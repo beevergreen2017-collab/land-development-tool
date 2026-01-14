@@ -122,7 +122,8 @@ const ScenarioForm = () => {
     };
 
     const basementCalc = computedResult ? computedResult.basement : {
-        estBasementFloors: 0, basementFloorArea: 0, basementTotalGFA: 0, totalExcavationDepth: 0, calcTotalParking: 0
+        estBasementFloors: 0, basementFloorArea: 0, basementTotalGFA: 0, totalExcavationDepth: 0, calcTotalParking: 0,
+        legal_parking: 0, legal_motorcycle: 0, auto_parking_car: 0, auto_parking_motorcycle: 0
     };
 
 
