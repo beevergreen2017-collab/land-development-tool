@@ -126,6 +126,9 @@ const ScenarioForm = () => {
         legal_parking: 0, legal_motorcycle: 0, auto_parking_car: 0, auto_parking_motorcycle: 0
     };
 
+    // Debug: Check if parking values reach UI
+    console.log('UI basementCalc:', basementCalc);
+
 
 
     return (
