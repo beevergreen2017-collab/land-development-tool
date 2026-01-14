@@ -178,13 +178,6 @@ export const computeScenario = (input) => {
     basementResult.auto_parking_car = autoParkingCar;
     basementResult.auto_parking_motorcycle = autoParkingMotorcycle;
 
-    // Debug: Log parking calculations
-    console.log('Parking Debug:', {
-        residential, commercial, agency,
-        autoParkingCar, autoParkingMotorcycle,
-        basementResult
-    });
-
     // 5.5 Site Statistics (Integrated Domain Logic)
     // const allParcels declared above
     const parcelStats = [];
