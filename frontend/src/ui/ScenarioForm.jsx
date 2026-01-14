@@ -129,6 +129,16 @@ const ScenarioForm = () => {
     // Debug: Check if parking values reach UI
     console.log('UI basementCalc:', basementCalc);
 
+    // Auto-run computation when project or inputs change
+    const runComputation = useProjectStore(state => state.runComputation);
+
+    useEffect(() => {
+        if (selectedProject) {
+            console.log('Auto-triggering computation...');
+            runComputation();
+        }
+    }, [selectedProject?.id, massingInputs, bonusData, basementInputs, siteInputs]);
+
 
 
     return (
