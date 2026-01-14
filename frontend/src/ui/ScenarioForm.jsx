@@ -116,7 +116,7 @@ const ScenarioForm = () => {
 
     const { baseVolume, siteArea } = computedResult || { baseVolume: 0, siteArea: 0 };
     const massingCalc = computedResult ? computedResult.massing : {
-        massingMEArea: 0, massingStairArea: 0, massingBalconyArea: 0,
+        massingMEArea: 0, massingStairArea: 0, massingBalconyArea: 0, massingGFA_NoBalcony: 0,
         massingGFA_Total: 0, estFloors: 0, estSingleFloorArea: 0, allowedVolumeArea: 0, saleableRatio: 0,
         usageAreas: { residential: 0, commercial: 0, agency: 0 }
     };
@@ -657,7 +657,7 @@ const ScenarioForm = () => {
                         </div>
                     </div>
 
-                    <div className="bg-purple-50 p-4 rounded-lg grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-purple-50 p-4 rounded-lg grid grid-cols-2 md:grid-cols-5 gap-4">
                         <div className="text-center">
                             <div className="text-xs text-gray-500 mb-1">預估樓層數</div>
                             <div className="text-2xl font-bold text-purple-700">{massingCalc.estFloors}F</div>
@@ -665,6 +665,11 @@ const ScenarioForm = () => {
                         <div className="text-center">
                             <div className="text-xs text-gray-500 mb-1">單層面積</div>
                             <div className="text-xl font-bold text-gray-800">{massingCalc.estSingleFloorArea.toLocaleString(undefined, { maximumFractionDigits: 1 })}</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-xs text-gray-500 mb-1">總樓地板 (不含陽台)</div>
+                            <div className="text-xl font-bold text-purple-600">{massingCalc.massingGFA_NoBalcony?.toLocaleString(undefined, { maximumFractionDigits: 1 }) || 0}</div>
+                            <div className="text-xs text-gray-400">GFA Excl. Balcony</div>
                         </div>
                         <div className="text-center">
                             <div className="text-xs text-gray-500 mb-1">總樓地板面積 (GFA)</div>
