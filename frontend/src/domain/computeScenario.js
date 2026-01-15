@@ -293,6 +293,9 @@ export const computeScenario = (input) => {
         }
     };
 
+    // Debug: Verify basement data structure
+    console.log('computeScenario basementResult:', basementResult);
+
     // 7. Validate Output
     return CalculationResultSchema.parse(result);
 };
