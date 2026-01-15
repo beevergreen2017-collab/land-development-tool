@@ -177,6 +177,8 @@ export const computeScenario = (input) => {
     basementResult.legal_motorcycle = basement.legal_motorcycle;
     basementResult.auto_parking_car = autoParkingCar;
     basementResult.auto_parking_motorcycle = autoParkingMotorcycle;
+    // Add calcTotalMotorcycle for UI consistency (similar to calcTotalParking)
+    basementResult.calcTotalMotorcycle = basement.legal_motorcycle;
 
     // 5.5 Site Statistics (Integrated Domain Logic)
     // const allParcels declared above

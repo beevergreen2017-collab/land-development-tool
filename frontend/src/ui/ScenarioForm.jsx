@@ -776,7 +776,7 @@ w - 5 h - 5 rounded - full border flex items - center justify - center
                             <label className="block text-sm font-bold text-gray-700 mb-2">法定機車 (輛) <span className="text-xs text-green-600">(自動計算)</span></label>
                             <input
                                 type="number"
-                                value={basementCalc.auto_parking_motorcycle || basementCalc.legal_motorcycle || 0}
+                                value={basementCalc.auto_parking_motorcycle || basementCalc.legal_motorcycle || basementCalc.calcTotalMotorcycle || 0}
                                 readOnly
                                 className="w-full border p-2 rounded text-center bg-gray-100 text-gray-700 cursor-not-allowed"
                             />
