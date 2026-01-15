@@ -152,7 +152,13 @@ export const BasementResultSchema = z.object({
     totalRequiredArea: z.number(),   // 總需求面積
     estBasementFloors: z.number(),   // 預估開挖樓層
     totalExcavationDepth: z.number(),// 預估開挖深度
-    basementTotalGFA: z.number()     // 地下室總樓地板
+    basementTotalGFA: z.number(),    // 地下室總樓地板
+    // Parking details
+    legal_parking: z.number().optional(),           // 法定汽車
+    legal_motorcycle: z.number().optional(),        // 法定機車
+    auto_parking_car: z.number().optional(),        // 自動計算汽車
+    auto_parking_motorcycle: z.number().optional(), // 自動計算機車
+    calcTotalMotorcycle: z.number().optional()      // 總機車數
 });
 
 export const BonusItemResultSchema = z.object({

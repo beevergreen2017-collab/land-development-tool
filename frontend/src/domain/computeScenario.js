@@ -140,14 +140,25 @@ export const computeScenario = (input) => {
 
     // 5. Basement Calculation
     // Always auto-calculate parking based on current GFA and usage
+    // Using detailed Taiwan parking regulations by usage type
     const { residential, commercial, agency } = massingResult.usageAreas;
 
     // Calculate auto parking values (always computed for real-time updates)
+    // 法定汽車 (Statutory Car Parking):
+    // - Residential: 1 space / 120 m²
+    // - Commercial: 1 space / 100 m²
+    // - Office/Agency: 1 space / 100 m²
     const autoParkingCar = Math.ceil(
-        (residential / 150) + (commercial / 100) + (agency / 100)
+        (residential / 120) + (commercial / 100) + (agency / 100)
     ) || 1; // Fallback to 1 to avoid /0 for layout
 
-    const autoParkingMotorcycle = Math.ceil(massingResult.massingGFA_NoBalcony / 100) || 1;
+    // 法定機車 (Statutory Motorcycle Parking):
+    // - Residential: 1 space / 100 m²
+    // - Commercial: 1 space / 200 m²
+    // - Office/Agency: 1 space / 140 m²
+    const autoParkingMotorcycle = Math.ceil(
+        (residential / 100) + (commercial / 200) + (agency / 140)
+    ) || 1;
 
     // Use manual input if provided (non-zero), otherwise use auto-calculated values
     // This ensures parking updates when GFA changes, unless user explicitly set a value
@@ -166,6 +177,8 @@ export const computeScenario = (input) => {
     basementResult.legal_motorcycle = basement.legal_motorcycle;
     basementResult.auto_parking_car = autoParkingCar;
     basementResult.auto_parking_motorcycle = autoParkingMotorcycle;
+    // Add calcTotalMotorcycle for UI consistency (similar to calcTotalParking)
+    basementResult.calcTotalMotorcycle = basement.legal_motorcycle;
 
     // 5.5 Site Statistics (Integrated Domain Logic)
     // const allParcels declared above
@@ -279,6 +292,9 @@ export const computeScenario = (input) => {
             inputHash: computeObjectHash(safeInput)
         }
     };
+
+    // Debug: Verify basement data structure
+    console.log('computeScenario basementResult:', basementResult);
 
     // 7. Validate Output
     return CalculationResultSchema.parse(result);

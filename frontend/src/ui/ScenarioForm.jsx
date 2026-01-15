@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Plus, Edit, List } from 'lucide-react';
 import useProjectStore from '../store/useProjectStore';
 import LandMap from '../components/LandMap';
@@ -45,7 +45,7 @@ const RenderBonusRow = ({ label, name, value, note, baseVolume, setBonusData, sa
                             onChange={e => setBonusData(name, parseFloat(e.target.value) || 0)}
                             onBlur={saveScenario}
                             disabled={isDisabled}
-                            className={`w-full text-sm border-gray-300 rounded px-2 py-1 text-right ${isDisabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
+                            className={`w - full text - sm border - gray - 300 rounded px - 2 py - 1 text - right ${isDisabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'} `}
                         />
                         <span className="ml-2 text-sm">%</span>
                     </div>
@@ -116,14 +116,28 @@ const ScenarioForm = () => {
 
     const { baseVolume, siteArea } = computedResult || { baseVolume: 0, siteArea: 0 };
     const massingCalc = computedResult ? computedResult.massing : {
-        massingMEArea: 0, massingStairArea: 0, massingBalconyArea: 0,
+        massingMEArea: 0, massingStairArea: 0, massingBalconyArea: 0, massingGFA_NoBalcony: 0,
         massingGFA_Total: 0, estFloors: 0, estSingleFloorArea: 0, allowedVolumeArea: 0, saleableRatio: 0,
         usageAreas: { residential: 0, commercial: 0, agency: 0 }
     };
 
     const basementCalc = computedResult ? computedResult.basement : {
-        estBasementFloors: 0, basementFloorArea: 0, basementTotalGFA: 0, totalExcavationDepth: 0, calcTotalParking: 0
+        estBasementFloors: 0, basementFloorArea: 0, basementTotalGFA: 0, totalExcavationDepth: 0, calcTotalParking: 0,
+        legal_parking: 0, legal_motorcycle: 0, auto_parking_car: 0, auto_parking_motorcycle: 0
     };
+
+    // Debug: Check if parking values reach UI
+    console.log('UI basementCalc:', basementCalc);
+
+    // Auto-run computation when project or inputs change
+    const runComputation = useProjectStore(state => state.runComputation);
+
+    useEffect(() => {
+        if (selectedProject) {
+            console.log('Auto-triggering computation...');
+            runComputation();
+        }
+    }, [selectedProject?.id, massingInputs, bonusData, basementInputs, siteInputs]);
 
 
 
@@ -162,7 +176,7 @@ const ScenarioForm = () => {
                                 const maxGfaDisplay = stats?.maxGfa != null ? stats.maxGfa : (parcel.area_m2 * parcel.legal_floor_area_rate / 100);
 
                                 return (
-                                    <tr key={parcel.id} className={`hover:bg-blue-50 text-sm ${hasWarning ? 'bg-red-50' : ''}`}>
+                                    <tr key={parcel.id} className={`hover: bg - blue - 50 text - sm ${hasWarning ? 'bg-red-50' : ''} `}>
                                         <td className="px-4 py-3 text-center">
                                             <input type="checkbox" checked={parcel.includeInSite !== false} disabled className="text-blue-600 rounded" />
                                         </td>
@@ -238,7 +252,7 @@ const ScenarioForm = () => {
                     <div className="text-sm font-bold text-gray-700 break-words">
                         {parcelSummary.zoneBreakdown ?
                             Object.values(parcelSummary.zoneBreakdown).map(z =>
-                                `${z.zone} ${((z.totalArea / parcelSummary.totalArea) * 100).toFixed(0)}%`
+                                `${z.zone} ${((z.totalArea / parcelSummary.totalArea) * 100).toFixed(0)}% `
                             ).join(' / ')
                             : '-'
                         }
@@ -252,17 +266,17 @@ const ScenarioForm = () => {
                         {parcelSummary.maxBuildingArea.toLocaleString(undefined, { maximumFractionDigits: 1 })} m²
                     </div>
                     <div className="text-xs text-gray-400">
-                        {parcelSummary.totalArea > 0 ? `Avg BCR ${(parcelSummary.maxBuildingArea / parcelSummary.totalArea * 100).toFixed(1)}%` : ''}
+                        {parcelSummary.totalArea > 0 ? `Avg BCR ${(parcelSummary.maxBuildingArea / parcelSummary.totalArea * 100).toFixed(1)}% ` : ''}
                     </div>
                 </div>
 
                 <div className="text-center border-l border-gray-200 pl-4 min-w-[140px] relative">
                     <div className="text-sm text-gray-500 font-medium">允建總樓地板 (Max GFA)</div>
-                    <div className={`text-xl font-bold ${parcelSummary.isDiffWarning ? 'text-red-500' : 'text-blue-700'}`}>
+                    <div className={`text - xl font - bold ${parcelSummary.isDiffWarning ? 'text-red-500' : 'text-blue-700'} `}>
                         {parcelSummary.maxGFA.toLocaleString(undefined, { maximumFractionDigits: 1 })} m²
                     </div>
                     <div className="text-xs text-gray-400">
-                        {parcelSummary.totalArea > 0 ? `Avg FAR ${(parcelSummary.maxGFA / parcelSummary.totalArea * 100).toFixed(1)}%` : ''}
+                        {parcelSummary.totalArea > 0 ? `Avg FAR ${(parcelSummary.maxGFA / parcelSummary.totalArea * 100).toFixed(1)}% ` : ''}
                     </div>
                     {parcelSummary.isDiffWarning && (
                         <div className="absolute top-0 right-0 -mt-2 -mr-2">
@@ -309,22 +323,22 @@ const ScenarioForm = () => {
                                         disabled={isDisabled}
                                         onClick={() => setMixedZonePolicy(opt.value)}
                                         className={`
-                                            relative flex items-center gap-3 px-4 py-3 rounded-lg border transition-all shadow-sm text-left
+                                            relative flex items - center gap - 3 px - 4 py - 3 rounded - lg border transition - all shadow - sm text - left
                                             ${isDisabled
                                                 ? 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed opacity-60'
                                                 : isActive
                                                     ? 'bg-orange-50 border-orange-500 ring-1 ring-orange-500 z-10'
                                                     : 'bg-white border-gray-200 hover:border-orange-300 hover:bg-gray-50'
                                             }
-                                        `}
+`}
                                     >
                                         <div className={`
-                                            w-5 h-5 rounded-full border flex items-center justify-center
+w - 5 h - 5 rounded - full border flex items - center justify - center
                                             ${isActive ? 'border-orange-500' : 'border-gray-300'}
-                                        `}>
+`}>
                                             {isActive && <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />}
                                         </div>
-                                        <span className={`text-sm font-medium ${isActive ? 'text-orange-900' : 'text-gray-700'}`}>
+                                        <span className={`text - sm font - medium ${isActive ? 'text-orange-900' : 'text-gray-700'} `}>
                                             {opt.label}
                                         </span>
                                     </button>
@@ -372,9 +386,9 @@ const ScenarioForm = () => {
                                                     usePlan: { ...siteInputs?.allocation?.usePlan, residentialGfaPlanned: parseFloat(e.target.value) || 0 }
                                                 }
                                             })}
-                                            className={`w-full border rounded p-2 text-right pr-8 ${(siteInputs?.allocation?.usePlan?.residentialGfaPlanned || 0) > (siteInputs?.allocation?.resCapGfa || 0)
+                                            className={`w - full border rounded p - 2 text - right pr - 8 ${(siteInputs?.allocation?.usePlan?.residentialGfaPlanned || 0) > (siteInputs?.allocation?.resCapGfa || 0)
                                                 ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                                                }`}
+                                                } `}
                                             placeholder="0"
                                         />
                                         <span className="absolute right-3 top-2 text-sm text-gray-400">m²</span>
@@ -416,9 +430,9 @@ const ScenarioForm = () => {
                                                     usePlan: { ...siteInputs?.allocation?.usePlan, commercialGfaPlanned: parseFloat(e.target.value) || 0 }
                                                 }
                                             })}
-                                            className={`w-full border rounded p-2 text-right pr-8 ${(siteInputs?.allocation?.usePlan?.commercialGfaPlanned || 0) > (siteInputs?.allocation?.comCapGfa || 0)
+                                            className={`w - full border rounded p - 2 text - right pr - 8 ${(siteInputs?.allocation?.usePlan?.commercialGfaPlanned || 0) > (siteInputs?.allocation?.comCapGfa || 0)
                                                 ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                                                }`}
+                                                } `}
                                             placeholder="0"
                                         />
                                         <span className="absolute right-3 top-2 text-sm text-gray-400">m²</span>
@@ -657,7 +671,7 @@ const ScenarioForm = () => {
                         </div>
                     </div>
 
-                    <div className="bg-purple-50 p-4 rounded-lg grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-purple-50 p-4 rounded-lg grid grid-cols-2 md:grid-cols-5 gap-4">
                         <div className="text-center">
                             <div className="text-xs text-gray-500 mb-1">預估樓層數</div>
                             <div className="text-2xl font-bold text-purple-700">{massingCalc.estFloors}F</div>
@@ -665,6 +679,11 @@ const ScenarioForm = () => {
                         <div className="text-center">
                             <div className="text-xs text-gray-500 mb-1">單層面積</div>
                             <div className="text-xl font-bold text-gray-800">{massingCalc.estSingleFloorArea.toLocaleString(undefined, { maximumFractionDigits: 1 })}</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-xs text-gray-500 mb-1">總樓地板 (不含陽台)</div>
+                            <div className="text-xl font-bold text-purple-600">{massingCalc.massingGFA_NoBalcony?.toLocaleString(undefined, { maximumFractionDigits: 1 }) || 0}</div>
+                            <div className="text-xs text-gray-400">GFA Excl. Balcony</div>
                         </div>
                         <div className="text-center">
                             <div className="text-xs text-gray-500 mb-1">總樓地板面積 (GFA)</div>
@@ -731,19 +750,14 @@ const ScenarioForm = () => {
                             />
                         </div>
 
-                        {/* 5. Legal Parking Count */}
+                        {/* 5. Legal Parking Count (Auto-calculated) */}
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">法定汽車 (輛) <span className="text-xs text-gray-400">(留空=自動)</span></label>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">法定汽車 (輛) <span className="text-xs text-green-600">(自動計算)</span></label>
                             <input
                                 type="number"
-                                value={basementInputs?.legal_parking || basementCalc.legal_parking || ''}
-                                onChange={e => {
-                                    const val = parseFloat(e.target.value);
-                                    setBasementInput('legal_parking', (val && val > 0) ? val : 0);
-                                }}
-                                onBlur={saveScenario}
-                                placeholder={`自動: ${basementCalc.auto_parking_car || basementCalc.legal_parking || 0}`}
-                                className="w-full border p-2 rounded text-center"
+                                value={basementCalc.auto_parking_car || basementCalc.auto_parking_car || (basementCalc.calcTotalParking ? Math.max(0, basementCalc.calcTotalParking - (basementInputs?.bonus_parking || 0)) : 0)}
+                                readOnly
+                                className="w-full border p-2 rounded text-center bg-gray-100 text-gray-700 cursor-not-allowed"
                             />
                         </div>
                         {/* 6. Bonus Parking Count */}
@@ -757,19 +771,14 @@ const ScenarioForm = () => {
                                 className="w-full border p-2 rounded text-center"
                             />
                         </div>
-                        {/* 7. Legal Moto Count */}
+                        {/* 7. Legal Moto Count (Auto-calculated) */}
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">法定機車 (輛) <span className="text-xs text-gray-400">(留空=自動)</span></label>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">法定機車 (輛) <span className="text-xs text-green-600">(自動計算)</span></label>
                             <input
                                 type="number"
-                                value={basementInputs?.legal_motorcycle || basementCalc.legal_motorcycle || ''}
-                                onChange={e => {
-                                    const val = parseFloat(e.target.value);
-                                    setBasementInput('legal_motorcycle', (val && val > 0) ? val : 0);
-                                }}
-                                onBlur={saveScenario}
-                                placeholder={`自動: ${basementCalc.auto_parking_motorcycle || basementCalc.legal_motorcycle || 0}`}
-                                className="w-full border p-2 rounded text-center"
+                                value={basementCalc.auto_parking_motorcycle || basementCalc.legal_motorcycle || basementCalc.calcTotalMotorcycle || 0}
+                                readOnly
+                                className="w-full border p-2 rounded text-center bg-gray-100 text-gray-700 cursor-not-allowed"
                             />
                         </div>
                         {/* 8. Total Car Eqv */}
@@ -1210,8 +1219,8 @@ const ScenarioForm = () => {
                                                 </div>
 
                                                 {/* Eligibility Gates */}
-                                                <div className={`p-3 rounded border text-sm space-y-2 ${isValid ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-100'}`}>
-                                                    <div className={`font-bold border-b pb-1 ${isValid ? 'text-green-800 border-green-200' : 'text-red-800 border-red-200'}`}>
+                                                <div className={`p - 3 rounded border text - sm space - y - 2 ${isValid ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-100'} `}>
+                                                    <div className={`font - bold border - b pb - 1 ${isValid ? 'text-green-800 border-green-200' : 'text-red-800 border-red-200'} `}>
                                                         1. 適用門檻 (Gates) {isValid ? '✔ 通過' : '⚠ 未通過'}
                                                     </div>
 
@@ -1259,7 +1268,7 @@ const ScenarioForm = () => {
                                                                 <div className="font-bold text-blue-800 text-sm mb-1">{cfg.title}</div>
                                                                 <div className="flex flex-wrap gap-2 text-xs">
                                                                     {cfg.options.map(opt => (
-                                                                        <label key={opt.label} className={`flex items-center gap-1 cursor-pointer p-1 rounded border ${checklist[key] === opt.value ? 'bg-blue-100 border-blue-300' : 'border-transparent'}`}>
+                                                                        <label key={opt.label} className={`flex items - center gap - 1 cursor - pointer p - 1 rounded border ${checklist[key] === opt.value ? 'bg-blue-100 border-blue-300' : 'border-transparent'} `}>
                                                                             <input
                                                                                 type="radio"
                                                                                 name={key}
@@ -1517,13 +1526,13 @@ const ScenarioForm = () => {
 
                                         return (
                                             <div className="space-y-6 h-full overflow-y-auto pr-2">
-                                                <div className={`p-4 rounded border ${areaOk ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                                                    <h4 className={`font-bold mb-2 ${areaOk ? 'text-green-800' : 'text-red-800'}`}>
+                                                <div className={`p - 4 rounded border ${areaOk ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'} `}>
+                                                    <h4 className={`font - bold mb - 2 ${areaOk ? 'text-green-800' : 'text-red-800'} `}>
                                                         條件檢核 (Eligibility)
                                                     </h4>
                                                     <div className="flex justify-between items-center bg-white p-2 rounded border border-gray-100 mb-2">
                                                         <span className="text-sm font-medium text-gray-600">基地規模 Site Area</span>
-                                                        <span className={`font-mono font-bold ${areaOk ? 'text-green-600' : 'text-red-500'}`}>
+                                                        <span className={`font - mono font - bold ${areaOk ? 'text-green-600' : 'text-red-500'} `}>
                                                             {siteAreaM2.toLocaleString()} m²
                                                         </span>
                                                     </div>
@@ -1619,10 +1628,10 @@ const ScenarioForm = () => {
                                                 <div key={key} className="p-3 bg-gray-50 rounded border border-gray-100">
                                                     <div className="flex justify-between items-center mb-1">
                                                         <span className="font-bold text-gray-700 text-sm">{cfg.label}</span>
-                                                        <span className={`text-xs font-mono ${typeof cfg.value === 'number' ? 'text-blue-600' : 'text-gray-500'}`}>
+                                                        <span className={`text - xs font - mono ${typeof cfg.value === 'number' ? 'text-blue-600' : 'text-gray-500'} `}>
                                                             {typeof cfg.value === 'number'
-                                                                ? `${cfg.value}%`
-                                                                : (currentChecklist[key] > 0 ? `${currentChecklist[key]}%` : 'Variable')}
+                                                                ? `${cfg.value}% `
+                                                                : (currentChecklist[key] > 0 ? `${currentChecklist[key]}% ` : 'Variable')}
                                                         </span>
                                                     </div>
                                                     <p className="text-xs text-gray-500 mb-2">{cfg.description}</p>
